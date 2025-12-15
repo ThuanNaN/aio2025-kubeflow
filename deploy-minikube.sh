@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Minikube Deployment Script for YOLO Application
+# This script deploys the backend and frontend services to minikube
+
+set -e
+
+echo "🚀 Starting Minikube Deployment..."
+
+# Check if minikube is running
+if ! minikube status &> /dev/null; then
+    echo "❌ Minikube is not running. Starting minikube..."
+    minikube start --cpus=4 --memory=8192
+else
+    echo "✅ Minikube is already running"
+fi
+
+# Enable addons for minikube
+echo "🔌 Enabling minikube addons..."
+minikube addons enable ingress
+minikube addons enable dashboard
+minikube addons enable metrics-server
+
+echo "📥 Using images from GitHub Container Registry (GHCR)..."
+echo "   Images will be pulled automatically by Kubernetes"
+
+# Create namespace
+echo "📦 Creating namespace..."
+kubectl apply -f k8s/namespace.yaml
+
+# Deploy backend
+echo "🔧 Deploying backend..."
+kubectl apply -f k8s/backend-deployment.yaml
+
+# Deploy frontend
+echo "🎨 Deploying frontend..."
+kubectl apply -f k8s/frontend-deployment.yaml
+
+# Wait for deployments to be ready
+echo "⏳ Waiting for deployments to be ready..."
+kubectl wait --for=condition=available --timeout=300s deployment/backend -n yolo-app
+kubectl wait --for=condition=available --timeout=300s deployment/frontend -n yolo-app
+
+# Get service URLs
+echo ""
+echo "✅ Deployment completed successfully!"
+echo ""
+echo "📊 Deployment Status:"
+kubectl get pods -n yolo-app
+echo ""
+kubectl get services -n yolo-app
+echo ""
+echo "🌐 Access your application:"
+echo "   Backend:  $(minikube service backend-service -n yolo-app --url)"
+echo "   Frontend: $(minikube service frontend-service -n yolo-app --url)"
+echo ""
+echo "💡 To open the frontend in your browser, run:"
+echo "   minikube service frontend-service -n yolo-app"
+echo ""
+echo "� To access Kubernetes Dashboard, run:"
+echo "   minikube dashboard"
+echo ""
+echo "📝 To view logs:"
+echo "   Backend:  kubectl logs -n yolo-app -l app=backend"
+echo "   Frontend: kubectl logs -n yolo-app -l app=frontend"
+echo ""
+echo "📈 To view metrics:"
+echo "   kubectl top nodes"
+echo "   kubectl top pods -n yolo-app"
+echo ""
+echo "🗑️  To delete the deployment:"
+echo "   kubectl delete namespace yolo-app"
