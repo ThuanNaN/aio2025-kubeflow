@@ -1,0 +1,6 @@
+fastapi==0.124.4
+uvicorn[standard]==0.38.0
+python-multipart==0.0.20
+ultralytics==8.3.237
+httpx==0.28.1
+pytest==9.0.2
