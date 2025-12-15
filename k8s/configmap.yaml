@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: yolo-app
+data:
+  BACKEND_URL: "http://backend-service:8000/predict"
+  YOLO_MODEL: "/app/model/yolo11n.pt"
+  HOST: "0.0.0.0"
+  BACKEND_PORT: "8000"
+  FRONTEND_PORT: "7860"
