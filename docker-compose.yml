@@ -10,6 +10,8 @@ services:
       - ./backend/model:/app/model
     environment:
       - YOLO_MODEL=/app/model/yolo11n.pt
+    mem_limit: 2g
+    cpus: 1
 
   frontend:
     build:
@@ -24,3 +26,5 @@ services:
       - BACKEND_URL=http://backend:8000/predict
     volumes:
       - ./frontend:/app:ro
+    mem_limit: 1g
+    cpus: 0.5
