@@ -1,4 +1,4 @@
-# aio2025-kubeflow
+# AI VIETNAM - AIO 2025 - Kubeflow
 
 A foundation of tools for AI platforms on Kubernetes. This project demonstrates deploying a YOLO11n object detection service using Docker and Kubernetes, featuring a FastAPI backend and Gradio frontend interface.
 
