@@ -1,17 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: yolo-ingress
+  name: frontend-ingress
   namespace: yolo-app
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
-  tls:
-  - hosts:
-    - yolo.example.com
-    secretName: yolo-tls
   rules:
   - host: yolo.example.com
     http:
@@ -23,10 +18,3 @@ spec:
             name: frontend-service
             port:
               number: 80
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: backend-service
-            port:
-              number: 8000

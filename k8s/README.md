@@ -22,11 +22,18 @@ This directory contains Kubernetes manifests and deployment configurations for t
 
 ```
 k8s/
-├── namespace.yaml              # Namespace definition
-├── backend-deployment.yaml     # Backend deployment and service
-├── frontend-deployment.yaml    # Frontend deployment and service
-├── configmap.yaml             # Application configuration
-└── ingress.yaml               # Ingress rules (optional)
+├── backend/
+│   ├── deployment.yaml         # Backend deployment
+│   ├── service.yaml           # Backend service
+│   └── ingress.yaml           # Backend ingress rules
+├── frontend/
+│   ├── deployment.yaml         # Frontend deployment
+│   ├── service.yaml           # Frontend service
+│   └── ingress.yaml           # Frontend ingress rules
+├── shared/
+│   ├── namespace.yaml         # Namespace definition
+│   └── configmap.yaml         # Application configuration
+└── README.md                  # This file
 ```
 
 ## Manual Deployment
@@ -34,19 +41,40 @@ k8s/
 ### 1. Create Namespace
 
 ```bash
-kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/shared/namespace.yaml
 ```
 
 ### 2. Deploy Backend
 
 ```bash
-kubectl apply -f k8s/backend-deployment.yaml
+kubectl apply -f k8s/backend/
 ```
 
 Verify backend deployment:
 ```bash
 kubectl get pods -n yolo-app -l app=backend
 kubectl logs -n yolo-app -l app=backend
+```
+
+### 3. Deploy Frontend
+
+```bash
+kubectl apply -f k8s/frontend/
+```
+
+Verify frontend deployment:
+```bash
+kubectl get pods -n yolo-app -l app=frontend
+kubectl logs -n yolo-app -l app=frontend
+```
+
+### Deploy All Services
+
+```bash
+# Deploy everything at once
+kubectl apply -f k8s/shared/
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/frontend/
 ```
 
 ### 3. Deploy Frontend

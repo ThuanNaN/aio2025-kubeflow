@@ -21,25 +21,41 @@ minikube addons enable ingress
 minikube addons enable dashboard
 minikube addons enable metrics-server
 
+# Wait for ingress controller to be ready
+echo "⏳ Waiting for ingress controller to be ready..."
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=300s 2>/dev/null || echo "⚠️  Ingress controller not ready, skipping ingress resources"
+
 echo "📥 Using images from GitHub Container Registry (GHCR)..."
 echo "   Images will be pulled automatically by Kubernetes"
 
 # Create namespace
 echo "📦 Creating namespace..."
-kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/shared/namespace.yaml
 
-# Deploy backend
+# Deploy backend (without ingress first)
 echo "🔧 Deploying backend..."
-kubectl apply -f k8s/backend-deployment.yaml
+kubectl apply -f k8s/backend/deployment.yaml
+kubectl apply -f k8s/backend/service.yaml
 
-# Deploy frontend
+# Deploy frontend (without ingress first)
 echo "🎨 Deploying frontend..."
-kubectl apply -f k8s/frontend-deployment.yaml
+kubectl apply -f k8s/frontend/deployment.yaml
+kubectl apply -f k8s/frontend/service.yaml
 
 # Wait for deployments to be ready
 echo "⏳ Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=300s deployment/backend -n yolo-app
 kubectl wait --for=condition=available --timeout=300s deployment/frontend -n yolo-app
+
+# Deploy ingress resources if ingress controller is ready
+if kubectl get deployment -n ingress-nginx ingress-nginx-controller &>/dev/null; then
+    echo "🌐 Deploying ingress resources..."
+    kubectl apply -f k8s/backend/ingress.yaml 2>/dev/null || echo "⚠️  Could not apply backend ingress"
+    kubectl apply -f k8s/frontend/ingress.yaml 2>/dev/null || echo "⚠️  Could not apply frontend ingress"
+fi
 
 # Get service URLs
 echo ""
@@ -68,5 +84,9 @@ echo "📈 To view metrics:"
 echo "   kubectl top nodes"
 echo "   kubectl top pods -n yolo-app"
 echo ""
-echo "🗑️  To delete the deployment:"
+echo "� Deploy services separately:"
+echo "   Backend:  ./deploy-backend.sh"
+echo "   Frontend: ./deploy-frontend.sh"
+echo ""
+echo "�🗑️  To delete the deployment:"
 echo "   kubectl delete namespace yolo-app"
