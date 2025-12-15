@@ -405,60 +405,46 @@ docker service inspect yolo-stack_frontend --pretty
 
 ### Scale Services
 
-#### Automated Scaling Script
-
-Use the scaling script for easy service management:
+Use Docker commands to scale your services based on your needs:
 
 ```bash
-# Show current status and replica distribution
-./scale-swarm.sh
+# Check current service status and replicas
+docker service ls
 
-# Auto-scale based on available nodes
-./scale-swarm.sh --auto
+# View detailed information about backend replicas
+docker service ps yolo-stack_backend
 
-# Scale backend to specific replica count
-./scale-swarm.sh backend 3
-
-# Scale frontend
-./scale-swarm.sh frontend 2
-
-# Show help
-./scale-swarm.sh --help
-```
-
-**What it does:**
-- Shows current cluster topology and service status
-- Validates replica counts and cluster constraints
-- Performs rolling updates (zero downtime)
-- Waits for scaling to complete
-- Provides detailed task distribution
-- Respects placement constraints (max 1 backend per node)
-
-**Scaling Examples:**
-
-```bash
-# Scale backend to match number of nodes (recommended)
-./scale-swarm.sh --auto
-
-# Manual scaling for specific scenarios
-./scale-swarm.sh backend 2    # 2 backend replicas
-./scale-swarm.sh backend 4    # 4 backend replicas
-./scale-swarm.sh frontend 1   # 1 frontend replica (default)
-```
-
-#### Manual Scaling (Alternative)
-
-If you prefer using Docker commands directly:
-
-```bash
 # Scale backend to 3 replicas
 docker service scale yolo-stack_backend=3
 
 # Scale backend to 1 replica
 docker service scale yolo-stack_backend=1
 
-# Check scaling progress
-docker service ps yolo-stack_backend
+# Scale frontend (typically keep at 1)
+docker service scale yolo-stack_frontend=1
+```
+
+**Best Practices:**
+- **Backend**: Scale based on load and available nodes (typically 1 replica per node)
+- **Frontend**: Usually keep at 1 replica unless you need redundancy
+- **Check nodes**: Use `docker node ls` to see how many nodes are available
+- **Monitor**: Use `docker service ps <service>` to verify replicas are running correctly
+- **Constraints**: The backend has placement constraints (max 1 per node) defined in docker-compose.swarm.yml
+
+**Common Scaling Scenarios:**
+
+```bash
+# For a 2-node cluster (recommended)
+docker service scale yolo-stack_backend=2
+
+# For a 4-node cluster
+docker service scale yolo-stack_backend=4
+
+# Scale down for maintenance
+docker service scale yolo-stack_backend=1
+
+# Check scaling progress and replica distribution
+docker service ps yolo-stack_backend --no-trunc
 ```
 
 ### Update Services
