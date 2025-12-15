@@ -171,6 +171,41 @@ docker run --rm -p 7860:7860 \
   aio2025-kubeflow-frontend:latest
 ```
 
+## 🐝 Docker Swarm Deployment
+
+For multi-node production deployments with high availability, use Docker Swarm mode. See [SWARM_DEPLOYMENT.md](SWARM_DEPLOYMENT.md) for detailed instructions.
+
+**Quick Swarm Deployment:**
+
+1. **Initial infrastructure setup** (first time only):
+   ```bash
+   ./deploy-swarm.sh
+   ```
+
+2. **Build and push multi-arch images**:
+   ```bash
+   ./build-and-push.sh
+   ```
+
+3. **Deploy the stack**:
+   ```bash
+   ./deploy-stack.sh
+   ```
+
+4. **Cleanup when done** (optional):
+   ```bash
+   ./cleanup-swarm.sh        # Remove stack only
+   ./cleanup-swarm.sh --all  # Remove everything
+   ```
+
+The Swarm deployment supports:
+- Multi-architecture builds (amd64 + arm64)
+- High availability with backend replicas across multiple nodes
+- Rolling updates with automatic rollback
+- Resource limits and reservations
+- Health checks and automatic restart
+- Automated cleanup and resource management
+
 ## ☸️ Kubernetes Deployment
 
 Kubernetes manifests will be available in the `k8s/` directory for production deployments on Kubernetes clusters.
@@ -180,19 +215,24 @@ Kubernetes manifests will be available in the `k8s/` directory for production de
 ```
 aio2025-kubeflow/
 ├── backend/
-│   ├── api.py              # FastAPI application and endpoints
-│   ├── main.py             # Entry point for backend server
-│   ├── Dockerfile          # Backend container definition
-│   ├── requirements.txt    # Python dependencies
-│   ├── model/              # YOLO model files
-│   └── tests/              # Backend tests
+│   ├── api.py                    # FastAPI application and endpoints
+│   ├── main.py                   # Entry point for backend server
+│   ├── Dockerfile                # Backend container definition
+│   ├── requirements.txt          # Python dependencies
+│   ├── model/                    # YOLO model files
+│   └── tests/                    # Backend tests
 ├── frontend/
-│   ├── gradio_app.py       # Gradio web interface
-│   ├── Dockerfile          # Frontend container definition
-│   └── requirements.txt    # Python dependencies
-├── k8s/                    # Kubernetes manifests (coming soon)
-├── docker-compose.yml      # Multi-container orchestration
-└── README.md               # This file
+│   ├── gradio_app.py             # Gradio web interface
+│   ├── Dockerfile                # Frontend container definition
+│   └── requirements.txt          # Python dependencies
+├── docker-compose.yml            # Local development orchestration
+├── docker-compose.swarm.yml      # Docker Swarm stack definition
+├── deploy-swarm.sh               # Swarm infrastructure setup script
+├── build-and-push.sh             # Multi-arch image build script
+├── deploy-stack.sh               # Stack deployment script
+├── cleanup-swarm.sh              # Cleanup and resource removal script
+├── SWARM_DEPLOYMENT.md           # Docker Swarm deployment guide
+└── README.md                     # This file
 ```
 
 ## 🛠️ Technology Stack
@@ -202,7 +242,8 @@ aio2025-kubeflow/
 - **Frontend Framework**: Gradio
 - **Server**: Uvicorn
 - **Containerization**: Docker, Docker Compose
-- **Orchestration**: Kubernetes (planned)
+- **Orchestration**: Docker Swarm, Kubernetes (planned)
+- **Multi-Architecture**: Docker Buildx for amd64/arm64 support
 
 ## 📝 Notes
 
@@ -221,8 +262,10 @@ This project is part of the AIO 2025 Kubeflow tutorial series.
 
 ## 🔗 Related Documentation
 
-- [Backend README](backend/README.md)
-- [Frontend README](frontend/README.md)
-- [Ultralytics YOLO](https://docs.ultralytics.com/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Gradio Documentation](https://www.gradio.app/docs/)
+- [Docker Swarm Deployment Guide](SWARM_DEPLOYMENT.md) - Complete guide for production multi-node deployment
+- [Backend README](backend/README.md) - Backend service details
+- [Frontend README](frontend/README.md) - Frontend application details
+- [Ultralytics YOLO](https://docs.ultralytics.com/) - YOLO model documentation
+- [FastAPI Documentation](https://fastapi.tiangolo.com/) - FastAPI framework
+- [Gradio Documentation](https://www.gradio.app/docs/) - Gradio interface
+- [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/) - Docker Swarm mode
