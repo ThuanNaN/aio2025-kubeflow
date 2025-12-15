@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Docker Swarm Infrastructure Setup Script
-# This script initializes Docker Swarm and sets up the local registry
-# Run this once to set up the infrastructure, then use build-and-push.sh and deploy-stack.sh
+# This script initializes Docker Swarm
+# Run this once to set up the infrastructure, then use deploy-stack.sh
 
 set -e
 
@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 # Configuration
 WORKER_IP="192.168.1.101"
 STACK_NAME="yolo-stack"
-REGISTRY_PORT="5001"
 
 echo -e "${BLUE}=====================================${NC}"
 echo -e "${BLUE}Docker Swarm Infrastructure Setup${NC}"
@@ -80,32 +79,10 @@ verify_nodes() {
     fi
 }
 
-# Function to setup local registry (optional but recommended)
-setup_registry() {
-    echo -e "${BLUE}[3/4] Setting up local Docker registry...${NC}"
-    
-    if docker service ls | grep -q "registry"; then
-        echo -e "${YELLOW}Registry service already exists. Skipping...${NC}"
-    else
-        docker service create \
-            --name registry \
-            --publish published=${REGISTRY_PORT},target=5001 \
-            --constraint 'node.role==manager' \
-            --mount type=volume,source=registry-data,destination=/var/lib/registry \
-            registry:2
-        
-        echo -e "${YELLOW}Waiting for registry to be ready...${NC}"
-        sleep 10
-        echo -e "${GREEN}✓ Registry service created${NC}"
-    fi
-}
-
 # Function to show next steps
 show_next_steps() {
-    echo -e "${BLUE}[4/4] Setup Complete!${NC}"
+    echo -e "${BLUE}[3/3] Setup Complete!${NC}"
     echo ""
-    
-    HOST_IP=$(ipconfig getifaddr en0 || ipconfig getifaddr en1 || echo "localhost")
     
     echo -e "${GREEN}=====================================${NC}"
     echo -e "${GREEN}Infrastructure Setup Complete!${NC}"
@@ -114,18 +91,13 @@ show_next_steps() {
     echo -e "${BLUE}Swarm Status:${NC}"
     docker node ls
     echo ""
-    echo -e "${BLUE}Registry:${NC} ${GREEN}${HOST_IP}:${REGISTRY_PORT}${NC}"
-    echo ""
     echo -e "${YELLOW}Next Steps:${NC}"
-    echo -e "  1. Build and push images:"
-    echo -e "     ${BLUE}./build-and-push.sh${NC}"
-    echo ""
-    echo -e "  2. Deploy the stack:"
+    echo -e "  Deploy the stack:"
     echo -e "     ${BLUE}./deploy-stack.sh${NC}"
     echo ""
     echo -e "${YELLOW}Useful commands:${NC}"
     echo -e "  Check nodes:   ${BLUE}docker node ls${NC}"
-    echo -e "  Check registry: ${BLUE}curl http://${HOST_IP}:${REGISTRY_PORT}/v2/_catalog${NC}"
+    echo -e "  View services: ${BLUE}docker service ls${NC}"
     echo -e "  Leave swarm:   ${BLUE}docker swarm leave --force${NC}"
     echo ""
 }

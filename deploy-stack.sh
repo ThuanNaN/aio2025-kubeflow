@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Deploy Stack from Registry Script
-# This script deploys the YOLO stack using pre-built images from the registry
+# Deploy Stack Script
+# This script deploys the YOLO stack using images from GitHub Container Registry (GHCR)
 
 set -e
 
@@ -14,23 +14,16 @@ NC='\033[0m' # No Color
 
 # Configuration
 STACK_NAME="yolo-stack"
-REGISTRY_PORT="5001"
 COMPOSE_FILE="docker-compose.swarm.yml"
 
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${BLUE}Deploy Stack from Registry${NC}"
+echo -e "${BLUE}Deploy Stack from GHCR${NC}"
 echo -e "${BLUE}=====================================${NC}"
 echo ""
 
-# Get host IP
-get_host_ip() {
-    HOST_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "localhost")
-    echo "${HOST_IP}"
-}
-
 # Check if swarm is active
 check_swarm() {
-    echo -e "${BLUE}[1/4] Checking Docker Swarm status...${NC}"
+    echo -e "${BLUE}[1/2] Checking Docker Swarm status...${NC}"
     
     if docker info 2>/dev/null | grep -q "Swarm: active"; then
         echo -e "${GREEN}✓ Swarm is active${NC}"
@@ -41,30 +34,12 @@ check_swarm() {
     fi
 }
 
-# Verify registry is accessible
-check_registry() {
-    echo -e "${BLUE}[2/4] Verifying registry accessibility...${NC}"
-    
-    REGISTRY_ADDR=$(get_host_ip)
-    
-    if curl -s http://${REGISTRY_ADDR}:${REGISTRY_PORT}/v2/_catalog > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Registry is accessible at ${REGISTRY_ADDR}:${REGISTRY_PORT}${NC}"
-    else
-        echo -e "${RED}✗ Cannot connect to registry at ${REGISTRY_ADDR}:${REGISTRY_PORT}${NC}"
-        echo -e "${YELLOW}Make sure the registry service is running${NC}"
-        exit 1
-    fi
-}
-
 # Deploy stack
 deploy_stack() {
-    echo -e "${BLUE}[3/4] Deploying stack from registry...${NC}"
+    echo -e "${BLUE}[2/2] Deploying stack from GHCR...${NC}"
     
-    REGISTRY_ADDR=$(get_host_ip)
-    export REGISTRY="${REGISTRY_ADDR}:${REGISTRY_PORT}"
-    
-    echo -e "${YELLOW}Using registry: ${REGISTRY}${NC}"
     echo -e "${YELLOW}Deploying stack: ${STACK_NAME}${NC}"
+    echo -e "${YELLOW}Images from: ghcr.io/thuannan/aio2025-kubeflow/*${NC}"
     
     docker stack deploy -c ${COMPOSE_FILE} ${STACK_NAME}
     
@@ -73,7 +48,8 @@ deploy_stack() {
 
 # Show status
 show_status() {
-    echo -e "${BLUE}[4/4] Checking deployment status...${NC}"
+    echo ""
+    echo -e "${BLUE}Checking deployment status...${NC}"
     echo ""
     
     echo -e "${YELLOW}Waiting for services to start...${NC}"
@@ -121,7 +97,6 @@ main() {
     fi
     
     check_swarm
-    check_registry
     deploy_stack
     show_status
 }

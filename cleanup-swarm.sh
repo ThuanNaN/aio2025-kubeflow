@@ -3,7 +3,7 @@
 # cleanup-swarm.sh - Clean up Docker Swarm stack and resources
 # Usage: ./cleanup-swarm.sh [OPTIONS]
 # Options:
-#   --all         : Remove everything (stack, registry, images, leave swarm)
+#   --all         : Remove everything (stack, images, leave swarm)
 #   --stack-only  : Remove only the stack (default)
 #   --keep-images : Don't remove images when cleaning
 
@@ -18,27 +18,22 @@ NC='\033[0m' # No Color
 
 # Configuration
 STACK_NAME="yolo-stack"
-REGISTRY_SERVICE="registry"
 
 # Parse command line arguments
 REMOVE_STACK=true
-REMOVE_REGISTRY=false
 REMOVE_IMAGES=false
 LEAVE_SWARM=false
 
 if [[ "$1" == "--all" ]]; then
     REMOVE_STACK=true
-    REMOVE_REGISTRY=true
     REMOVE_IMAGES=true
     LEAVE_SWARM=true
 elif [[ "$1" == "--stack-only" ]]; then
     REMOVE_STACK=true
-    REMOVE_REGISTRY=false
     REMOVE_IMAGES=false
     LEAVE_SWARM=false
 elif [[ "$1" == "--keep-images" ]]; then
     REMOVE_STACK=true
-    REMOVE_REGISTRY=false
     REMOVE_IMAGES=false
     LEAVE_SWARM=false
 fi
@@ -121,39 +116,22 @@ remove_stack() {
     print_success "Stack '$STACK_NAME' completely removed"
 }
 
-# Remove registry service
-remove_registry() {
-    print_step "2/?" "Removing registry service..."
-    
-    if ! docker service ls | grep -q "$REGISTRY_SERVICE"; then
-        print_warning "Registry service not found"
-        return 0
-    fi
-    
-    docker service rm "$REGISTRY_SERVICE"
-    print_success "Registry service removed"
-}
-
 # Remove images
 remove_images() {
-    print_step "3/?" "Removing images..."
+    print_step "2/?" "Removing GHCR images..."
     
-    # Get registry IP
-    local host_ip=$(hostname -I | awk '{print $1}')
-    local registry_prefix="${host_ip}:5001"
+    echo "Removing aio2025-kubeflow images from GHCR..."
     
-    echo "Removing images with prefix: ${registry_prefix}/"
-    
-    # Remove yolo images
-    local images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${registry_prefix}/yolo-" || true)
+    # Remove backend and frontend images
+    local images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "ghcr.io/thuannan/aio2025-kubeflow/" || true)
     
     if [[ -z "$images" ]]; then
-        print_warning "No YOLO images found"
+        print_warning "No aio2025-kubeflow images found"
     else
         echo "$images" | while read -r image; do
             docker rmi "$image" 2>/dev/null && echo "  - Removed: $image" || true
         done
-        print_success "YOLO images removed"
+        print_success "GHCR images removed"
     fi
     
     # Prune unused images
@@ -180,24 +158,9 @@ clean_build_cache() {
 
 # Remove networks
 remove_networks() {
-    print_step "5/?" "Removing networks..."
-    
-    # Remove yolo-network if it exists and is not in use
-    if docker network ls | grep -q "yolo-network"; then
-        docker network rm yolo-network 2>/dev/null && print_success "Network 'yolo-network' removed" || print_warning "Network 'yolo-network' still in use or already removed"
-    else
-        print_warning "Network 'yolo-network' not found"
-    fi
-}
-
-# Leave swarm
-leave_swarm() {
-    print_step "6/?" "Leaving Docker Swarm..."
-    
-    # Check if this is a manager node
-    if docker info 2>/dev/null | grep -q "Is Manager: true"; then
-        # Check if there are other managers
-        local manager_count=$(docker node ls --filter "role=manager" -q | wc -l)
+  Remove networks
+remove_networks() {
+    print_step "3ager_count=$(docker node ls --filter "role=manager" -q | wc -l)
         if [[ $manager_count -gt 1 ]]; then
             print_warning "Multiple managers detected. Please demote this node first:"
             echo "  docker node demote $(hostname)"
@@ -207,7 +170,7 @@ leave_swarm() {
         print_warning "This is the last manager node"
         docker swarm leave --force
         print_success "Left swarm (forced)"
-    else
+    else4
         docker swarm leave
         print_success "Left swarm"
     fi
@@ -241,26 +204,18 @@ show_status() {
     else
         echo -e "Swarm:    ${RED}Inactive${NC}"
     fi
+    swarm
+    if check_swarm; then
+        echo -e "Swarm:    ${GREEN}Active${NC}"
+        local node_count=$(docker node ls -q 2>/dev/null | wc -l)
+        echo "Nodes:    $node_count"
+    else
+        echo -e "Swarm:    ${RED}Inactive${NC}"
+    fi
     
     # Check images
-    local host_ip=$(hostname -I | awk '{print $1}')
-    local image_count=$(docker images | grep "${host_ip}:5001/yolo-" | wc -l)
-    echo "Images:   $image_count YOLO images"
-    
-    echo ""
-}
-
-# Main execution
-main() {
-    check_docker
-    
-    # Show what will be cleaned
-    echo "Cleanup Plan:"
-    echo "============="
-    [[ $REMOVE_STACK == true ]] && echo "✓ Remove stack: $STACK_NAME"
-    [[ $REMOVE_REGISTRY == true ]] && echo "✓ Remove registry service"
-    [[ $REMOVE_IMAGES == true ]] && echo "✓ Remove Docker images"
-    [[ $REMOVE_IMAGES == true ]] && echo "✓ Clean build cache"
+    local image_count=$(docker images | grep "ghcr.io/thuannan/aio2025-kubeflow/" | wc -l)
+    echo "Images:   $image_count GHCRcho "✓ Clean build cache"
     [[ $LEAVE_SWARM == true ]] && echo "✓ Leave Docker Swarm"
     echo ""
     
@@ -277,8 +232,8 @@ main() {
     echo ""
     
     # Execute cleanup steps
-    if ! check_swarm && [[ $REMOVE_STACK == true || $REMOVE_REGISTRY == true ]]; then
-        print_error "Swarm is not active. Cannot remove stack or registry."
+    if ! check_swarm && [[ $REMOVE_STACK == true ]]; then
+        print_error "Swarm is not active. Cannot remove stack."
         exit 1
     fi
     
@@ -290,17 +245,9 @@ main() {
         ((step++))
     fi
     
-    # Remove registry
-    if [[ $REMOVE_REGISTRY == true ]]; then
-        remove_registry
-        ((step++))
-    fi
-    
     # Remove images
     if [[ $REMOVE_IMAGES == true ]]; then
         remove_images
-        ((step++))
-        clean_build_cache
         ((step++))
     fi
     
@@ -329,8 +276,7 @@ main() {
         echo "==========="
         if [[ $REMOVE_STACK == true ]]; then
             echo "To redeploy:"
-            echo "  1. Build images:  ./build-and-push.sh"
-            echo "  2. Deploy stack:  ./deploy-stack.sh"
+            echo "  ./deploy-stack.sh"
         fi
     else
         echo "Docker Swarm has been completely cleaned."

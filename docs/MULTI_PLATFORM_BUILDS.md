@@ -130,11 +130,11 @@ In this YOLO object detection project:
 
 # What it does:
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t ${REGISTRY}/yolo-backend:latest \
+  -t ${REGISTRY}/backend:latest \
   --push ./backend
 
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t ${REGISTRY}/yolo-frontend:latest \
+  -t ${REGISTRY}/frontend:latest \
   --push ./frontend
 ```
 

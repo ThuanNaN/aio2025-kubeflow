@@ -53,7 +53,7 @@ This deployment uses Docker Swarm mode to provide:
   - **2377/tcp**: Cluster management
   - **7946/tcp & udp**: Node communication
   - **4789/udp**: Overlay network traffic
-  - **5001/tcp**: Local Docker registry
+
   - **8000/tcp**: Backend API
   - **7860/tcp**: Frontend interface
 
@@ -108,13 +108,13 @@ Internet
 
 ## 🚀 Quick Start
 
-### Three-Script Workflow
+### Two-Script Workflow
 
-The deployment is divided into three separate scripts for clear separation of concerns:
+The deployment is divided into two simple scripts:
 
 #### 1. Infrastructure Setup (First Time Only)
 
-Initialize Docker Swarm, verify nodes, and set up the local registry:
+Initialize Docker Swarm and verify nodes:
 
 ```bash
 ./deploy-swarm.sh
@@ -123,31 +123,13 @@ Initialize Docker Swarm, verify nodes, and set up the local registry:
 **What it does:**
 - Initializes Docker Swarm mode
 - Verifies all cluster nodes
-- Creates local Docker registry service
 - Displays node information and next steps
 
 **Run this:** Only once during initial cluster setup or when adding new nodes.
 
-#### 2. Build and Push Images
+#### 2. Deploy the Stack
 
-Build multi-architecture images and push to the registry:
-
-```bash
-./build-and-push.sh
-```
-
-**What it does:**
-- Sets up Docker Buildx with multi-arch support
-- Builds backend image for amd64 and arm64
-- Builds frontend image for amd64 and arm64
-- Pushes images to local registry
-- Verifies images in registry catalog
-
-**Run this:** Whenever you make code changes to backend or frontend.
-
-#### 3. Deploy the Stack
-
-Deploy or update the stack from pre-built images:
+Deploy the stack using pre-built images from GitHub Container Registry (GHCR):
 
 ```bash
 ./deploy-stack.sh
@@ -155,11 +137,10 @@ Deploy or update the stack from pre-built images:
 
 **What it does:**
 - Checks Swarm status
-- Verifies registry accessibility
-- Deploys/updates the yolo-stack
+- Deploys/updates the yolo-stack using GHCR images
 - Shows running services and tasks
 
-**Run this:** To deploy initially or update running services after new images are built.
+**Run this:** To deploy initially or update running services.
 
 ### Complete Deployment Flow
 
@@ -167,12 +148,13 @@ Deploy or update the stack from pre-built images:
 # First time setup
 ./deploy-swarm.sh
 
-# Build images (after code changes)
-./build-and-push.sh
-
-# Deploy the stack
+# Deploy the stack (uses images from ghcr.io/thuannan/aio2025-kubeflow-*)
 ./deploy-stack.sh
 ```
+
+**Note:** Images are pulled from GitHub Container Registry (GHCR):
+- Backend: `ghcr.io/thuannan/aio2025-kubeflow/backend:latest`
+- Frontend: `ghcr.io/thuannan/aio2025-kubeflow/frontend:latest`
 
 ## 🔧 Detailed Setup
 
@@ -186,76 +168,40 @@ Run the infrastructure setup script:
 
 **Expected Output:**
 ```
-==============================================
-Docker Swarm Deployment - Infrastructure Setup
-==============================================
+=====================================
+Docker Swarm Infrastructure Setup
+=====================================
 
-[1/4] Initializing Docker Swarm...
+[1/3] Initializing Docker Swarm...
 ✓ Docker Swarm initialized
   Manager IP: 192.168.1.213
 
-[2/4] Verifying cluster nodes...
+[2/3] Verifying cluster nodes...
 ✓ Found 2 nodes in the cluster
 
-[3/4] Setting up local Docker registry...
-✓ Registry service created at 192.168.1.213:5001
+[3/3] Setup Complete!
+=====================================
+Infrastructure Setup Complete!
+=====================================
 
-[4/4] Next Steps
-================
-
-Current Swarm Nodes:
+Swarm Status:
 ID            HOSTNAME   STATUS  AVAILABILITY  MANAGER STATUS
 abc123...     orbstack   Ready   Active        Leader
 def456...     ubuntu     Ready   Active        
 
-Registry Address: 192.168.1.213:5001
-
 Next Steps:
-1. Build and push images:    ./build-and-push.sh
-2. Deploy the stack:          ./deploy-stack.sh
+  Deploy the stack:
+     ./deploy-stack.sh
+
+Useful commands:
+  Check nodes:   docker node ls
+  View services: docker service ls
+  Leave swarm:   docker swarm leave --force
 ```
 
-### Step 2: Build Multi-Architecture Images
+### Step 2: Deploy the Stack
 
-Build images for both amd64 and arm64 platforms:
-
-```bash
-./build-and-push.sh
-```
-
-**Expected Output:**
-```
-==============================================
-Building and Pushing Multi-Arch Images
-==============================================
-
-[1/4] Setting up multi-arch builder...
-✓ Buildx builder 'multi-arch-insecure' ready
-
-[2/4] Building backend image (amd64 + arm64)...
-✓ Backend image built and pushed
-
-[3/4] Building frontend image (amd64 + arm64)...
-✓ Frontend image built and pushed
-
-[4/4] Verifying images in registry...
-✓ Images available in registry:
-  - yolo-backend
-  - yolo-frontend
-
-Build complete! Images ready for deployment.
-```
-
-**Build Details:**
-- Uses Docker Buildx with `docker-container` driver
-- Builds for platforms: `linux/amd64,linux/arm64`
-- Creates multi-arch manifest lists
-- Pushes directly to local registry
-- Supports insecure HTTP registry
-
-### Step 3: Deploy the Stack
-
-Deploy the services to the Swarm cluster:
+Deploy the stack using images from GHCR:
 
 ```bash
 ./deploy-stack.sh
@@ -263,21 +209,25 @@ Deploy the services to the Swarm cluster:
 
 **Expected Output:**
 ```
-==============================================
-Deploying YOLO Stack from Registry
-==============================================
+=====================================
+Deploy Stack from GHCR
+=====================================
 
-[1/4] Checking Docker Swarm status...
-✓ Docker Swarm is active
+[1/2] Checking Docker Swarm status...
+✓ Swarm is active
 
-[2/4] Checking registry accessibility...
-✓ Registry is accessible at 192.168.1.213:5001
+[2/2] Deploying stack from GHCR...
+Deploying stack: yolo-stack
+Images from: ghcr.io/thuannan/aio2025-kubeflow/*
+✓ Stack deployment initiated
 
-[3/4] Deploying stack 'yolo-stack'...
-✓ Stack deployed successfully
+Checking deployment status...
 
-[4/4] Service Status
-====================
+Services:
+ID            NAME                  MODE        REPLICAS
+### Step 3: Verify Deployment
+
+After deployment, verify the services are running:
 
 Services:
 ID            NAME                  MODE        REPLICAS
@@ -300,7 +250,7 @@ Access the application:
 
 ### Why Multi-Architecture?
 
-Supporting multiple CPU architectures allows:
+The images are available for multiple CPU architectures:
 - **Flexibility**: Deploy on different hardware (Intel, AMD, ARM)
 - **Cost Optimization**: Use ARM instances for better price/performance
 - **Edge Deployment**: Deploy on ARM-based edge devices
@@ -313,21 +263,21 @@ Supporting multiple CPU architectures allows:
 
 ### How It Works
 
-1. **Docker Buildx** creates platform-specific images
+1. Images are pre-built with multi-arch support in GHCR
 2. **Manifest lists** reference all architecture variants
 3. **Docker automatically** pulls the correct image for each node's architecture
 4. Services run natively without emulation
 
 ### Verification
 
-Check image manifest:
+Check image manifest from GHCR:
 
 ```bash
-# Get registry IP
-REGISTRY=$(docker service inspect registry --format '{{.Endpoint.VirtualIPs}}' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+# Inspect manifest for backend
+docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/backend:latest
 
-# Inspect manifest
-docker manifest inspect ${REGISTRY}:5001/yolo-backend:latest
+# Inspect manifest for frontend
+docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
 ```
 
 Expected output shows multiple architectures:
@@ -450,15 +400,18 @@ docker service ps yolo-stack_backend --no-trunc
 ### Update Services
 
 ```bash
-# Update backend image
-docker service update --image ${REGISTRY}:5001/yolo-backend:latest yolo-stack_backend
+# Update backend image from GHCR
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/backend:latest yolo-stack_backend
 
 # Update with rolling update parameters
 docker service update \
   --update-parallelism 1 \
   --update-delay 10s \
-  --image ${REGISTRY}:5001/yolo-backend:latest \
+  --image ghcr.io/thuannan/aio2025-kubeflow/backend:latest \
   yolo-stack_backend
+
+# Update frontend
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/frontend:latest yolo-stack_frontend
 ```
 
 ### Node Management
@@ -495,9 +448,9 @@ docker service ps yolo-stack_backend --no-trunc
 ```
 
 **Solutions:**
-1. Verify multi-arch images exist:
+1. Verify images are available:
    ```bash
-   curl http://${REGISTRY}:5001/v2/yolo-backend/tags/list
+   docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/backend:latest
    ```
 
 2. Check node architectures:
@@ -505,23 +458,24 @@ docker service ps yolo-stack_backend --no-trunc
    docker node inspect $(docker node ls -q) --format '{{.ID}}: {{.Description.Platform.Architecture}}'
    ```
 
-3. Verify registry is accessible:
+3. Pull images manually if needed:
    ```bash
-   curl http://${REGISTRY}:5001/v2/_catalog
+   docker pull ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+   docker pull ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
    ```
 
 ### Image Pull Errors
 
-**Symptom:** "failed to resolve reference", "http: server gave HTTP response to HTTPS client"
+**Symptom:** "failed to resolve reference", "denied: permission_denied"
 
-**Solution:** Ensure buildx builder has insecure registry configured:
+**Solution:** Ensure images are publicly accessible or authenticate with GHCR:
 
 ```bash
-# Check builder config
-docker buildx inspect multi-arch-insecure
+# Login to GHCR if images are private
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 
-# Recreate if needed
-./build-and-push.sh
+# Verify you can pull the image
+docker pull ghcr.io/thuannan/aio2025-kubeflow/backend:latest
 ```
 
 ### Backend Not Responding
@@ -623,14 +577,14 @@ docker stack deploy -c docker-compose.swarm.yml yolo-stack
 
 ### Custom Registry Port
 
-Edit `docker-compose.swarm.yml` and scripts:
+Edit `docker-compose.swarm.yml` to customize image tags or use different versions:
 
-```bash
-# Change registry port in deploy-swarm.sh
-sed -i 's/5001/5002/g' deploy-swarm.sh build-and-push.sh deploy-stack.sh
-
-# Update REGISTRY variable
-export REGISTRY=192.168.1.213:5002
+```yaml
+services:
+  backend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/backend:v1.0  # Specific version
+  frontend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
 ```
 
 ### Resource Limits
@@ -802,8 +756,8 @@ If an update fails:
 # Rollback to previous version
 docker service rollback yolo-stack_backend
 
-# Or redeploy specific version
-docker service update --image ${REGISTRY}:5001/yolo-backend:v1.0 yolo-stack_backend
+# Or redeploy specific version (if tagged)
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/backend:v1.0 yolo-stack_backend
 ```
 
 ## 🧹 Cleanup
@@ -819,29 +773,29 @@ Use the cleanup script for safe and automated resource cleanup:
 # Same as above
 ./cleanup-swarm.sh --stack-only
 
-# Remove stack but keep images (faster redeployment)
+# Remove stack but keep downloaded images (faster redeployment)
 ./cleanup-swarm.sh --keep-images
 
-# Remove everything (stack, registry, images, leave swarm)
+# Remove everything (stack, downloaded images, leave swarm)
 ./cleanup-swarm.sh --all
 ```
 
 **What it does:**
 - Shows current status before cleanup
 - Asks for confirmation before proceeding
-- Removes services gracefully
+- Removes stack services gracefully
 - Waits for complete shutdown
-- Cleans up networks and resources
+- Cleans up networks and downloaded images (if specified)
 - Provides next steps after cleanup
 
 **Cleanup Options:**
 
-| Command | Stack | Registry | Images | Leave Swarm |
-|---------|-------|----------|--------|-------------|
-| `./cleanup-swarm.sh` | ✓ | - | - | - |
-| `./cleanup-swarm.sh --stack-only` | ✓ | - | - | - |
-| `./cleanup-swarm.sh --keep-images` | ✓ | - | - | - |
-| `./cleanup-swarm.sh --all` | ✓ | ✓ | ✓ | ✓ |
+| Command | Stack | Images | Leave Swarm |
+|---------|-------|--------|-------------|
+| `./cleanup-swarm.sh` | ✓ | - | - |
+| `./cleanup-swarm.sh --stack-only` | ✓ | - | - |
+| `./cleanup-swarm.sh --keep-images` | ✓ | - | - |
+| `./cleanup-swarm.sh --all` | ✓ | ✓ | ✓ |
 
 ### Manual Cleanup (Alternative)
 
