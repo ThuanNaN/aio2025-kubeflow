@@ -1,0 +1,64 @@
+services:
+  backend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - YOLO_MODEL=/app/model/yolo11n.pt
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+    networks:
+      - yolo-network
+
+  frontend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
+    ports:
+      - "7860:7860"
+    environment:
+      - BACKEND_URL=http://backend:8000/predict
+    depends_on:
+      - backend
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - yolo-network
+
+networks:
+  yolo-network:
+    driver: overlay
+    attachable: true
+
