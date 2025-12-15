@@ -192,7 +192,13 @@ For multi-node production deployments with high availability, use Docker Swarm m
    ./deploy-stack.sh
    ```
 
-4. **Cleanup when done** (optional):
+4. **Scale services** (optional):
+   ```bash
+   ./scale-swarm.sh --auto   # Auto-scale based on nodes
+   ./scale-swarm.sh backend 3  # Manual scaling
+   ```
+
+5. **Cleanup when done** (optional):
    ```bash
    ./cleanup-swarm.sh        # Remove stack only
    ./cleanup-swarm.sh --all  # Remove everything
@@ -204,6 +210,7 @@ The Swarm deployment supports:
 - Rolling updates with automatic rollback
 - Resource limits and reservations
 - Health checks and automatic restart
+- Dynamic service scaling (manual and auto-scale)
 - Automated cleanup and resource management
 
 ## ☸️ Kubernetes Deployment
@@ -230,6 +237,7 @@ aio2025-kubeflow/
 ├── deploy-swarm.sh               # Swarm infrastructure setup script
 ├── build-and-push.sh             # Multi-arch image build script
 ├── deploy-stack.sh               # Stack deployment script
+├── scale-swarm.sh                # Service scaling script
 ├── cleanup-swarm.sh              # Cleanup and resource removal script
 ├── SWARM_DEPLOYMENT.md           # Docker Swarm deployment guide
 └── README.md                     # This file

@@ -405,12 +405,60 @@ docker service inspect yolo-stack_frontend --pretty
 
 ### Scale Services
 
+#### Automated Scaling Script
+
+Use the scaling script for easy service management:
+
+```bash
+# Show current status and replica distribution
+./scale-swarm.sh
+
+# Auto-scale based on available nodes
+./scale-swarm.sh --auto
+
+# Scale backend to specific replica count
+./scale-swarm.sh backend 3
+
+# Scale frontend
+./scale-swarm.sh frontend 2
+
+# Show help
+./scale-swarm.sh --help
+```
+
+**What it does:**
+- Shows current cluster topology and service status
+- Validates replica counts and cluster constraints
+- Performs rolling updates (zero downtime)
+- Waits for scaling to complete
+- Provides detailed task distribution
+- Respects placement constraints (max 1 backend per node)
+
+**Scaling Examples:**
+
+```bash
+# Scale backend to match number of nodes (recommended)
+./scale-swarm.sh --auto
+
+# Manual scaling for specific scenarios
+./scale-swarm.sh backend 2    # 2 backend replicas
+./scale-swarm.sh backend 4    # 4 backend replicas
+./scale-swarm.sh frontend 1   # 1 frontend replica (default)
+```
+
+#### Manual Scaling (Alternative)
+
+If you prefer using Docker commands directly:
+
 ```bash
 # Scale backend to 3 replicas
 docker service scale yolo-stack_backend=3
 
 # Scale backend to 1 replica
 docker service scale yolo-stack_backend=1
+
+# Check scaling progress
+docker service ps yolo-stack_backend
 ```
 
 ### Update Services
@@ -736,6 +784,29 @@ The stack will perform a rolling update automatically.
    ```
 
 Docker will reconfigure services without rebuilding images.
+
+### Scaling Services
+
+Adjust service replicas based on load or requirements:
+
+```bash
+# Check current status
+./scale-swarm.sh
+
+# Auto-scale to match node count
+./scale-swarm.sh --auto
+
+# Manual scaling
+./scale-swarm.sh backend 3
+./scale-swarm.sh frontend 1
+```
+
+**Scaling Scenarios:**
+
+- **High Traffic**: Scale backend up to handle more requests
+- **Resource Optimization**: Scale down during low-traffic periods
+- **New Nodes Added**: Auto-scale to utilize new nodes
+- **Maintenance**: Scale down specific nodes before maintenance
 
 ### Rolling Back
 
