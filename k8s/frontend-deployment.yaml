@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: thuannan/yolo-frontend:latest
+        image: ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 7860
