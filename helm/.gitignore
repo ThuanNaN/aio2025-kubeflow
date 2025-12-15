@@ -1,0 +1,9 @@
+# Helm chart for production
+values-prod.yaml
+values-*.yaml
+
+# Rendered templates (for debugging)
+rendered-manifests.yaml
+
+# Helm package files
+*.tgz

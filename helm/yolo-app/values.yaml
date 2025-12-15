@@ -1,0 +1,227 @@
+# Default values for yolo-app
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Namespace configuration
+namespace:
+  name: yolo-app
+  create: true
+
+# Global configuration
+config:
+  yoloModel: "/app/model/yolo11n.pt"
+  host: "0.0.0.0"
+
+# Backend service configuration
+backend:
+  name: backend
+  replicaCount: 2
+  
+  image:
+    repository: ghcr.io/thuannan/aio2025-kubeflow/backend
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    name: backend-service
+  
+  env:
+    port: "8000"
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  labels:
+    app: backend
+    tier: api
+
+# Frontend service configuration
+frontend:
+  name: frontend
+  replicaCount: 2
+  
+  image:
+    repository: ghcr.io/thuannan/aio2025-kubeflow/frontend
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 7860
+    name: frontend-service
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 7860
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 7860
+    initialDelaySeconds: 30
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  labels:
+    app: frontend
+    tier: ui
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  host: yolo.example.com
+  backend:
+    path: /api
+    pathType: Prefix
+  frontend:
+    path: /
+    pathType: Prefix
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  
+  # Prometheus configuration
+  prometheus:
+    name: prometheus
+    replicaCount: 1
+    
+    image:
+      repository: prom/prometheus
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 9090
+      targetPort: 9090
+      name: prometheus-service
+    
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+    
+    # Scrape interval
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    
+    # Retention period
+    retention: 15d
+    
+    # Storage
+    storage:
+      enabled: true
+      size: 10Gi
+      storageClass: standard
+  
+  # Grafana configuration
+  grafana:
+    name: grafana
+    replicaCount: 1
+    
+    image:
+      repository: grafana/grafana
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: LoadBalancer
+      port: 80
+      targetPort: 3000
+      name: grafana-service
+    
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "250m"
+    
+    # Admin credentials
+    adminUser: admin
+    adminPassword: admin123
+    
+    # Storage
+    storage:
+      enabled: true
+      size: 5Gi
+      storageClass: standard
+    
+    # Datasources
+    datasources:
+      prometheus:
+        url: http://prometheus-service:9090
+        access: proxy
+        isDefault: true
+  
+  # Node Exporter configuration
+  nodeExporter:
+    name: node-exporter
+    
+    image:
+      repository: prom/node-exporter
+      tag: latest
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 9100
+      targetPort: 9100
+      name: node-exporter-service
+    
+    resources:
+      requests:
+        memory: "30Mi"
+        cpu: "100m"
+      limits:
+        memory: "50Mi"
+        cpu: "200m"

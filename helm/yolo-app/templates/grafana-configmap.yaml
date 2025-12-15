@@ -1,0 +1,108 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: grafana
+    component: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: {{ .Values.monitoring.grafana.datasources.prometheus.url }}
+      access: {{ .Values.monitoring.grafana.datasources.prometheus.access }}
+      isDefault: {{ .Values.monitoring.grafana.datasources.prometheus.isDefault }}
+      editable: true
+{{- end }}
+---
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: grafana
+    component: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards
+{{- end }}
+---
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-kubernetes
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: grafana
+    component: monitoring
+    grafana_dashboard: "1"
+data:
+  kubernetes-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "YOLO App - Kubernetes Metrics",
+        "panels": [
+          {
+            "id": 1,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{namespace=\"{{ .Values.namespace.name }}\"}[5m])"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{namespace=\"{{ .Values.namespace.name }}\"}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Pod Count",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(kube_pod_info{namespace=\"{{ .Values.namespace.name }}\"})"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Network I/O",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_network_receive_bytes_total{namespace=\"{{ .Values.namespace.name }}\"}[5m])"
+              },
+              {
+                "expr": "rate(container_network_transmit_bytes_total{namespace=\"{{ .Values.namespace.name }}\"}[5m])"
+              }
+            ]
+          }
+        ]
+      }
+    }
+{{- end }}
