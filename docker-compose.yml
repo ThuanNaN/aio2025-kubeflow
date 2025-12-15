@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yolo-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/model:/app/model
+    environment:
+      - YOLO_MODEL=/app/model/yolo11n.pt
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yolo-frontend
+    ports:
+      - "7860:7860"
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000/predict
+    volumes:
+      - ./frontend:/app:ro

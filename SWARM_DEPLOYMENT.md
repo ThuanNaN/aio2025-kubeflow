@@ -1,0 +1,815 @@
+# Docker Swarm Deployment Guide
+
+Complete guide for deploying the YOLO11n object detection service on Docker Swarm with multi-architecture support and high availability.
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Detailed Setup](#detailed-setup)
+- [Multi-Architecture Support](#multi-architecture-support)
+- [Monitoring and Management](#monitoring-and-management)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Configuration](#advanced-configuration)
+
+## 🎯 Overview
+
+This deployment uses Docker Swarm mode to provide:
+
+- **High Availability**: Backend replicas distributed across multiple nodes
+- **Multi-Architecture**: Support for both amd64 and arm64 platforms
+- **Rolling Updates**: Zero-downtime deployments with automatic rollback
+- **Resource Management**: CPU and memory limits/reservations
+- **Load Balancing**: Built-in ingress load balancing across replicas
+- **Service Discovery**: Automatic DNS-based service discovery
+
+## 📦 Prerequisites
+
+### Required Software
+
+- Docker Engine 20.10+ with Swarm mode support
+- Docker Buildx for multi-architecture builds
+- Bash shell (macOS/Linux)
+- Network connectivity between cluster nodes
+
+### Hardware Requirements
+
+**Manager Node:**
+- 2+ CPU cores
+- 4GB+ RAM
+- 20GB+ disk space
+
+**Worker Nodes:**
+- 1+ CPU cores
+- 2GB+ RAM per node
+- 10GB+ disk space
+
+### Network Requirements
+
+- All nodes must be on the same network or have connectivity
+- Required ports open:
+  - **2377/tcp**: Cluster management
+  - **7946/tcp & udp**: Node communication
+  - **4789/udp**: Overlay network traffic
+
+  - **8000/tcp**: Backend API
+  - **7860/tcp**: Frontend interface
+
+## 🏗️ Architecture
+
+### Cluster Topology
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Docker Swarm Cluster                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌──────────────────┐         ┌──────────────────┐      │
+│  │  Manager Node    │         │  Worker Node(s)  │      │
+│  │  (arm64/amd64)   │         │  (arm64/amd64)   │      │
+│  ├──────────────────┤         ├──────────────────┤      │
+│  │ ✓ Frontend       │         │ ✓ Backend        │      │
+│  │ ✓ Backend        │         │   (Replica)      │      │
+│  │ ✓ Registry       │         │                  │      │
+│  └──────────────────┘         └──────────────────┘      │
+│                                                         │
+│           Overlay Network: yolo-network                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Service Architecture
+
+```
+Internet
+    │
+    ▼
+┌─────────────────┐
+│  Ingress Load   │
+│    Balancer     │
+└────────┬────────┘
+         │
+         ├──────────────┬──────────────┐
+         ▼              ▼              ▼
+    ┌─────────┐    ┌─────────┐   ┌─────────┐
+    │Frontend │    │ Backend │   │ Backend │
+    │:7860    │    │ Replica │   │ Replica │
+    │         │    │  :8000  │   │  :8000  │
+    └─────────┘    └─────────┘   └─────────┘
+         │              │              │
+         └──────────────┴──────────────┘
+                    │
+            ┌───────┴────────┐
+            │ YOLO11n Model  │
+            │  (Embedded)    │
+            └────────────────┘
+```
+
+## 🚀 Quick Start
+
+### Two-Script Workflow
+
+The deployment is divided into two simple scripts:
+
+#### 1. Infrastructure Setup (First Time Only)
+
+Initialize Docker Swarm and verify nodes:
+
+```bash
+./deploy-swarm.sh
+```
+
+**What it does:**
+- Initializes Docker Swarm mode
+- Verifies all cluster nodes
+- Displays node information and next steps
+
+**Run this:** Only once during initial cluster setup or when adding new nodes.
+
+#### 2. Deploy the Stack
+
+Deploy the stack using pre-built images from GitHub Container Registry (GHCR):
+
+```bash
+./deploy-stack.sh
+```
+
+**What it does:**
+- Checks Swarm status
+- Deploys/updates the yolo-stack using GHCR images
+- Shows running services and tasks
+
+**Run this:** To deploy initially or update running services.
+
+### Complete Deployment Flow
+
+```bash
+# First time setup
+./deploy-swarm.sh
+
+# Deploy the stack (uses images from ghcr.io/thuannan/aio2025-kubeflow-*)
+./deploy-stack.sh
+```
+
+**Note:** Images are pulled from GitHub Container Registry (GHCR):
+- Backend: `ghcr.io/thuannan/aio2025-kubeflow/backend:latest`
+- Frontend: `ghcr.io/thuannan/aio2025-kubeflow/frontend:latest`
+
+## 🔧 Detailed Setup
+
+### Step 1: Initial Infrastructure Setup
+
+Run the infrastructure setup script:
+
+```bash
+./deploy-swarm.sh
+```
+
+**Expected Output:**
+```
+=====================================
+Docker Swarm Infrastructure Setup
+=====================================
+
+[1/3] Initializing Docker Swarm...
+✓ Docker Swarm initialized
+  Manager IP: 192.168.1.213
+
+[2/3] Verifying cluster nodes...
+✓ Found 2 nodes in the cluster
+
+[3/3] Setup Complete!
+=====================================
+Infrastructure Setup Complete!
+=====================================
+
+Swarm Status:
+ID            HOSTNAME   STATUS  AVAILABILITY  MANAGER STATUS
+abc123...     orbstack   Ready   Active        Leader
+def456...     ubuntu     Ready   Active        
+
+Next Steps:
+  Deploy the stack:
+     ./deploy-stack.sh
+
+Useful commands:
+  Check nodes:   docker node ls
+  View services: docker service ls
+  Leave swarm:   docker swarm leave --force
+```
+
+### Step 2: Deploy the Stack
+
+Deploy the stack using images from GHCR:
+
+```bash
+./deploy-stack.sh
+```
+
+**Expected Output:**
+```
+=====================================
+Deploy Stack from GHCR
+=====================================
+
+[1/2] Checking Docker Swarm status...
+✓ Swarm is active
+
+[2/2] Deploying stack from GHCR...
+Deploying stack: yolo-stack
+Images from: ghcr.io/thuannan/aio2025-kubeflow/*
+✓ Stack deployment initiated
+
+Checking deployment status...
+
+Services:
+ID            NAME                  MODE        REPLICAS
+### Step 3: Verify Deployment
+
+After deployment, verify the services are running:
+
+Services:
+ID            NAME                  MODE        REPLICAS
+abc123...     yolo-stack_backend    replicated  2/2
+def456...     yolo-stack_frontend   replicated  1/1
+
+Running Tasks:
+NAME                    NODE      DESIRED STATE  CURRENT STATE
+yolo-stack_backend.1    orbstack  Running        Running 10 seconds ago
+yolo-stack_backend.2    ubuntu    Running        Running 10 seconds ago
+yolo-stack_frontend.1   orbstack  Running        Running 10 seconds ago
+
+Access the application:
+- Frontend: http://192.168.1.213:7860
+- Backend:  http://192.168.1.213:8000
+- API Docs: http://192.168.1.213:8000/docs
+```
+
+## 🌐 Multi-Architecture Support
+
+### Why Multi-Architecture?
+
+The images are available for multiple CPU architectures:
+- **Flexibility**: Deploy on different hardware (Intel, AMD, ARM)
+- **Cost Optimization**: Use ARM instances for better price/performance
+- **Edge Deployment**: Deploy on ARM-based edge devices
+- **Apple Silicon**: Run on M1/M2/M3 Mac machines
+
+### Supported Platforms
+
+- `linux/amd64`: x86_64 processors (Intel, AMD)
+- `linux/arm64`: ARM64 processors (Apple Silicon, AWS Graviton, Raspberry Pi 4+)
+
+### How It Works
+
+1. Images are pre-built with multi-arch support in GHCR
+2. **Manifest lists** reference all architecture variants
+3. **Docker automatically** pulls the correct image for each node's architecture
+4. Services run natively without emulation
+
+### Verification
+
+Check image manifest from GHCR:
+
+```bash
+# Inspect manifest for backend
+docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+
+# Inspect manifest for frontend
+docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
+```
+
+Expected output shows multiple architectures:
+
+```json
+{
+  "manifests": [
+    {
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      }
+    },
+    {
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      }
+    }
+  ]
+}
+```
+
+## 📊 Monitoring and Management
+
+### Check Service Status
+
+```bash
+# List all services
+docker stack services yolo-stack
+
+# Detailed service info
+docker service ps yolo-stack_backend --no-trunc
+docker service ps yolo-stack_frontend --no-trunc
+```
+
+### View Service Logs
+
+```bash
+# Backend logs (all replicas)
+docker service logs yolo-stack_backend
+
+# Frontend logs
+docker service logs yolo-stack_frontend
+
+# Follow logs in real-time
+docker service logs -f yolo-stack_backend
+
+# Last 50 lines
+docker service logs --tail 50 yolo-stack_backend
+```
+
+### Check Running Tasks
+
+```bash
+# Show all running tasks
+docker stack ps yolo-stack --filter "desired-state=running"
+
+# Show all tasks (including failed/shutdown)
+docker stack ps yolo-stack
+
+# Tasks on specific node
+docker node ps ubuntu
+```
+
+### Inspect Service Configuration
+
+```bash
+# Backend service details
+docker service inspect yolo-stack_backend --pretty
+
+# Frontend service details
+docker service inspect yolo-stack_frontend --pretty
+```
+
+### Scale Services
+
+Use Docker commands to scale your services based on your needs:
+
+```bash
+# Check current service status and replicas
+docker service ls
+
+# View detailed information about backend replicas
+docker service ps yolo-stack_backend
+
+# Scale backend to 3 replicas
+docker service scale yolo-stack_backend=3
+
+# Scale backend to 1 replica
+docker service scale yolo-stack_backend=1
+
+# Scale frontend (typically keep at 1)
+docker service scale yolo-stack_frontend=1
+```
+
+**Best Practices:**
+- **Backend**: Scale based on load and available nodes (typically 1 replica per node)
+- **Frontend**: Usually keep at 1 replica unless you need redundancy
+- **Check nodes**: Use `docker node ls` to see how many nodes are available
+- **Monitor**: Use `docker service ps <service>` to verify replicas are running correctly
+- **Constraints**: The backend has placement constraints (max 1 per node) defined in docker-compose.swarm.yml
+
+**Common Scaling Scenarios:**
+
+```bash
+# For a 2-node cluster (recommended)
+docker service scale yolo-stack_backend=2
+
+# For a 4-node cluster
+docker service scale yolo-stack_backend=4
+
+# Scale down for maintenance
+docker service scale yolo-stack_backend=1
+
+# Check scaling progress and replica distribution
+docker service ps yolo-stack_backend --no-trunc
+```
+
+### Update Services
+
+```bash
+# Update backend image from GHCR
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/backend:latest yolo-stack_backend
+
+# Update with rolling update parameters
+docker service update \
+  --update-parallelism 1 \
+  --update-delay 10s \
+  --image ghcr.io/thuannan/aio2025-kubeflow/backend:latest \
+  yolo-stack_backend
+
+# Update frontend
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/frontend:latest yolo-stack_frontend
+```
+
+### Node Management
+
+```bash
+# List all nodes
+docker node ls
+
+# Inspect node
+docker node inspect orbstack --pretty
+
+# Drain node (stop scheduling new tasks)
+docker node update --availability drain ubuntu
+
+# Activate node
+docker node update --availability active ubuntu
+```
+
+## 🔍 Troubleshooting
+
+### Services Not Starting
+
+**Symptom:** Tasks stuck in "Pending" or "Preparing" state
+
+**Check:**
+```bash
+# See error details
+docker service ps yolo-stack_backend --no-trunc
+
+# Common issues:
+# - "no suitable node": Check node constraints
+# - "unsupported platform": Missing architecture in image
+# - "image not found": Registry not accessible
+```
+
+**Solutions:**
+1. Verify images are available:
+   ```bash
+   docker manifest inspect ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+   ```
+
+2. Check node architectures:
+   ```bash
+   docker node inspect $(docker node ls -q) --format '{{.ID}}: {{.Description.Platform.Architecture}}'
+   ```
+
+3. Pull images manually if needed:
+   ```bash
+   docker pull ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+   docker pull ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
+   ```
+
+### Image Pull Errors
+
+**Symptom:** "failed to resolve reference", "denied: permission_denied"
+
+**Solution:** Ensure images are publicly accessible or authenticate with GHCR:
+
+```bash
+# Login to GHCR if images are private
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Verify you can pull the image
+docker pull ghcr.io/thuannan/aio2025-kubeflow/backend:latest
+```
+
+### Backend Not Responding
+
+**Check logs:**
+```bash
+docker service logs yolo-stack_backend | grep -i error
+```
+
+**Common issues:**
+- Model file not found: Ensure model is in image (check Dockerfile COPY)
+- Port conflicts: Check if port 8000 is available
+- Memory issues: Check resource limits
+
+**Verify model in container:**
+```bash
+# Get container ID
+CONTAINER_ID=$(docker ps | grep backend | awk '{print $1}' | head -1)
+
+# Check model exists
+docker exec $CONTAINER_ID ls -lh /app/model/
+```
+
+### Frontend Can't Reach Backend
+
+**Symptom:** Connection refused or timeout errors in frontend
+
+**Check:**
+```bash
+# Verify backend service exists
+docker service ls | grep backend
+
+# Check overlay network
+docker network inspect yolo-network
+
+# Test connectivity from frontend container
+docker exec $(docker ps | grep frontend | awk '{print $1}') curl http://backend:8000/docs
+```
+
+### Registry Issues
+
+**Symptom:** Cannot push images or pull from registry
+
+**Check registry service:**
+```bash
+# Verify registry is running
+docker service ps registry
+
+# Check registry logs
+docker service logs registry
+
+# Test registry
+curl http://$(hostname -I | awk '{print $1}'):5001/v2/_catalog
+```
+
+**Restart registry if needed:**
+```bash
+docker service update --force registry
+```
+
+### Node Failures
+
+**Symptom:** Node shown as "Down" in `docker node ls`
+
+**Steps:**
+1. SSH to the failed node
+2. Check Docker daemon: `systemctl status docker`
+3. Check network connectivity
+4. Rejoin the node if needed
+
+### Performance Issues
+
+**Check resource usage:**
+```bash
+# Node resources
+docker node inspect orbstack --format '{{.Description.Resources}}'
+
+# Service resource limits
+docker service inspect yolo-stack_backend --format '{{.Spec.TaskTemplate.Resources}}'
+
+# Container stats
+docker stats
+```
+
+**Adjust resources in docker-compose.swarm.yml:**
+```yaml
+resources:
+  limits:
+    cpus: '2'      # Increase if needed
+    memory: 4G     # Increase if needed
+```
+
+Then update:
+```bash
+docker stack deploy -c docker-compose.swarm.yml yolo-stack
+```
+
+## ⚙️ Advanced Configuration
+
+### Custom Registry Port
+
+Edit `docker-compose.swarm.yml` to customize image tags or use different versions:
+
+```yaml
+services:
+  backend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/backend:v1.0  # Specific version
+  frontend:
+    image: ghcr.io/thuannan/aio2025-kubeflow/frontend:latest
+```
+
+### Resource Limits
+
+Edit [docker-compose.swarm.yml](docker-compose.swarm.yml):
+
+```yaml
+services:
+  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: '2'        # Max 2 CPU cores
+          memory: 4G       # Max 4GB RAM
+        reservations:
+          cpus: '1'        # Reserved 1 CPU core
+          memory: 2G       # Reserved 2GB RAM
+```
+
+### Placement Constraints
+
+Control where services run:
+
+```yaml
+services:
+  backend:
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker           # Only on worker nodes
+          - node.labels.gpu == true       # Only on GPU nodes
+          - node.hostname != node1        # Exclude specific node
+```
+
+### Update Configuration
+
+Control rolling update behavior:
+
+```yaml
+services:
+  backend:
+    deploy:
+      update_config:
+        parallelism: 2      # Update 2 tasks at once
+        delay: 10s          # Wait 10s between batches
+        failure_action: rollback  # Rollback on failure
+        max_failure_ratio: 0.3    # Max 30% failures
+```
+
+### Health Checks
+
+Add health checks for better reliability:
+
+```yaml
+services:
+  backend:
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+### Persistent Volumes
+
+For data persistence across updates:
+
+```yaml
+services:
+  backend:
+    volumes:
+      - backend-data:/app/data
+      
+volumes:
+  backend-data:
+    driver: local
+```
+
+### Secrets Management
+
+For sensitive configuration:
+
+```bash
+# Create secret
+echo "my-secret-key" | docker secret create api_key -
+
+# Use in service
+services:
+  backend:
+    secrets:
+      - api_key
+      
+secrets:
+  api_key:
+    external: true
+```
+
+### Network Configuration
+
+Custom overlay network settings:
+
+```yaml
+networks:
+  yolo-network:
+    driver: overlay
+    attachable: true
+    driver_opts:
+      encrypted: "true"      # Encrypt network traffic
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
+```
+
+## 🔄 Update Workflow
+
+### Updating Application Code
+
+1. **Make code changes** in backend or frontend
+2. **Rebuild images:**
+   ```bash
+   ./build-and-push.sh
+   ```
+3. **Deploy update:**
+   ```bash
+   ./deploy-stack.sh
+   ```
+
+The stack will perform a rolling update automatically.
+
+### Updating Stack Configuration
+
+1. **Edit docker-compose.swarm.yml**
+2. **Deploy changes:**
+   ```bash
+   ./deploy-stack.sh
+   ```
+
+Docker will reconfigure services without rebuilding images.
+
+### Scaling Services
+
+Adjust service replicas based on load or requirements:
+
+```bash
+# Check current status
+./scale-swarm.sh
+
+# Auto-scale to match node count
+./scale-swarm.sh --auto
+
+# Manual scaling
+./scale-swarm.sh backend 3
+./scale-swarm.sh frontend 1
+```
+
+**Scaling Scenarios:**
+
+- **High Traffic**: Scale backend up to handle more requests
+- **Resource Optimization**: Scale down during low-traffic periods
+- **New Nodes Added**: Auto-scale to utilize new nodes
+- **Maintenance**: Scale down specific nodes before maintenance
+
+### Rolling Back
+
+If an update fails:
+
+```bash
+# Rollback to previous version
+docker service rollback yolo-stack_backend
+
+# Or redeploy specific version (if tagged)
+docker service update --image ghcr.io/thuannan/aio2025-kubeflow/backend:v1.0 yolo-stack_backend
+```
+
+## 🧹 Cleanup
+
+### Manual Cleanup
+
+Clean up resources using Docker commands:
+
+**Remove Stack:**
+```bash
+# Remove all services
+docker stack rm yolo-stack
+
+# Wait for services to stop
+docker stack ps yolo-stack
+```
+
+**Remove Registry:**
+```bash
+docker service rm registry
+```
+
+**Clean Images:**
+```bash
+# Remove YOLO images
+docker images | grep yolo | awk '{print $3}' | xargs docker rmi
+
+# Remove unused images
+docker image prune -a
+
+# Clean build cache
+docker builder prune -a
+docker buildx rm multi-arch-insecure
+```
+
+**Remove Networks:**
+```bash
+docker network rm yolo-network
+```
+
+**Leave Swarm:**
+```bash
+# On worker nodes
+docker swarm leave
+
+# On manager node (force if last manager)
+docker swarm leave --force
+```
+
+## 📚 Additional Resources
+
+- [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
+- [Docker Buildx Documentation](https://docs.docker.com/buildx/working-with-buildx/)
+- [Docker Compose Specification](https://docs.docker.com/compose/compose-file/)
+- [Docker Registry Documentation](https://docs.docker.com/registry/)
