@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.monitoring.nodeExporter.service.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: node-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.monitoring.nodeExporter.service.port }}"
+spec:
+  type: {{ .Values.monitoring.nodeExporter.service.type }}
+  clusterIP: None
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      port: {{ .Values.monitoring.nodeExporter.service.port }}
+      targetPort: {{ .Values.monitoring.nodeExporter.service.targetPort }}
+      protocol: TCP
+{{- end }}
