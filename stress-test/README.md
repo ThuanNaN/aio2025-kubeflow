@@ -1,70 +1,93 @@
-# YOLO Backend API - Stress Testing Service
+# YOLO Backend API - Stress Testing
 
-A standalone stress testing service for the YOLO backend API. Supports testing both local and deployed backends with configurable test profiles.
+Simple Python-based stress testing tools for the YOLO backend API. Test your Docker Compose, Docker Swarm, and Kubernetes deployments.
 
 ## Features
 
-- 🎯 **Multi-Environment Support**: Test local, Docker, Kubernetes, staging, and production deployments
-- 📊 **Multiple Testing Tools**: Locust (web UI + headless) and async Python benchmark
-- ⚙️ **Configurable Profiles**: Pre-defined test profiles for different scenarios (smoke, load, spike, endurance, etc.)
-- 🐳 **Dockerized**: Run tests in containers for isolation and portability
+- 🎯 **3 Environments**: Test local (Docker Compose), Swarm, and K8s deployments
+- 📊 **Two Tools**: Locust (interactive web UI) and async benchmark (fast CLI)
+- ⚙️ **7 Profiles**: Pre-configured test scenarios (smoke, quick, standard, load, spike, endurance, stress)
 - 📈 **Detailed Metrics**: Response times, percentiles, failure rates, and threshold checks
-- 🎨 **HTML Reports**: Generate beautiful HTML reports with charts and statistics
+- 🖼️ **Real Images**: Uses COCO val2014 dataset (40,504 images) for realistic testing
+- 🎨 **HTML Reports**: Generate beautiful reports with Locust
 
 ## Quick Start
 
-### 1. Installation
-
 ```bash
 cd stress-test
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Test your Docker Compose deployment
+./run_stress_test.sh --env local --profile quick
+
+# Test Docker Swarm
+./run_stress_test.sh --env swarm --profile standard
+
+# Test Kubernetes
+./run_stress_test.sh --env k8s --profile load
 ```
 
-### 2. Configure Environments
+**Note**: Automatically uses real images from `../val2014/` (40,504 COCO images). Falls back to synthetic images if not available.
 
-Edit `config.yaml` to add your target environments:
+## Configuration
+
+The service is pre-configured for 3 deployment environments:
 
 ```yaml
 environments:
   local:
     url: "http://localhost:8000"
+    description: "Local Docker Compose deployment"
   
-  kubernetes:
-    url: "http://localhost:30080"
-  
-  production:
-    url: "https://api.yourdomain.com"
-```
-
-### 3. Run a Test
-
-```bash
+  swarm:
+    url: "http://localhost:8000"
+bash
 # Quick async benchmark on local environment
 ./run_stress_test.sh --env local --profile quick
 
 # Interactive Locust web UI
 ./run_stress_test.sh --env local --mode web
 
-# Headless load test
-./run_stress_test.sh --env kubernetes --profile load --mode headless
+# Headless load test on Kubernetes
+./run_stress_test.sh --env k8s --profile load --mode headless
 ```
 
 ## Usage Guide
 
-### Command-Line Interface
+### Comm
+
+### Option 1: Shell Script (Recommended)
 
 ```bash
 ./run_stress_test.sh [OPTIONS]
 
 Options:
-  -e, --env <env>         Environment: local, docker, kubernetes, staging, production
+  -e, --env <env>         Environment: local, swarm, k8s
   -p, --profile <profile> Profile: smoke, quick, standard, load, spike, endurance, stress
-  -u, --url <url>         Custom API URL (overrides --env)
   -m, --mode <mode>       Mode: async (default), web, headless
-  -l, --list              List available environments and profiles
-  -h, --help              Show help message
+  -u, --url <url>         Custom URL (overrides --env)
+  -l, --list              List options
+  -h, --help              Help
+
+Examples:
+  ./run_stress_test.sh --env local --profile quick
+  ./run_stress_test.sh --env k8s --profile load --mode headless
+  ./run_stress_test.sh --list
 ```
 
+### Option 2: Direct Python
+
+```bash
+# Async benchmark
+python benchmark_async.py --env local --profile quick
+
+# Locust web UI
+locust -f stress_test.py --host http://localhost:8000
+
+# Locust headless
+locust -f stress_test.py --host http://localhost:8000 --headless -u 20 -r 5 -t 5m
 ### Test Profiles
 
 | Profile | Users | Duration | Description |
@@ -77,6 +100,23 @@ Options:
 | `endurance` | 20 | 30m | Long-running endurance test |
 | `stress` | 100 | 15m | High-load stress test |
 
+### Real Image Testing
+
+The stress test automatically uses real images from the COCO val2014 dataset for more realistic testing:
+
+- **Location**: `../val2014/` (relative to stress-test directory)
+- **Dataset**: COCO 2014 Validation Set (~40,000+ images)
+- **Behavior**: 
+  - ✅ If `val2014/` exists: Randomly selects actual images for each request
+  - ⚠️ If not found: Falls back to generating synthetic random images
+  
+When starting the tests, you'll see:
+```
+Loaded 40504 images from /path/to/val2014
+```
+
+This ensures the YOLO model processes real-world images during stress testing, providing accurate performance metrics.
+
 ### Testing Modes
 
 #### 1. Async Benchmark (Default)
@@ -84,8 +124,14 @@ Options:
 Fast, lightweight Python-based benchmark:
 
 ```bash
-# Using environment and profile
+# Test Docker Compose deployment
 ./run_stress_test.sh --env local --profile standard
+
+# Test Docker Swarm cluster
+./run_stress_test.sh --env swarm --profile standard
+
+# Test Kubernetes cluster
+./run_stress_test.sh --env k8s --profile standard
 
 # Using custom URL
 python benchmark_async.py --url http://localhost:8000 --concurrent 20 --requests 500
@@ -102,44 +148,7 @@ Interactive web interface for real-time monitoring:
 
 #### 3. Locust Headless
 
-Automated tests with HTML reports:
-
-```bash
-./run_stress_test.sh --env kubernetes --profile load --mode headless
-# Report saved to results/ directory
-```
-
-## Docker Usage
-
-### Build Image
-
-```bash
-cd stress-test
-docker build -t yolo-stress-test .
-```
-
-### Run with Docker
-
-```bash
-# Locust web UI
-docker run -p 8089:8089 yolo-stress-test
-
-# Async benchmark
-docker run yolo-stress-test python benchmark_async.py --env docker --profile quick
-
-# Headless with custom URL
-docker run yolo-stress-test locust -f stress_test.py \
-  --host http://your-backend:8000 \
-  --headless -u 20 -r 5 -t 5m
-```
-
-### Docker Compose
-
-```bash
-# Start service
-docker-compose up -d
-
-# View logs
+AutTest Profiles
 docker-compose logs -f
 
 # Stop service
@@ -191,39 +200,14 @@ thresholds:
 
 ```bash
 # Start backend
-cd backend
-python main.py
-
-# Test it
-cd stress-test
-./run_stress_test.sh --env local --profile quick
-```
-
-### Docker Backend
-
-```bash
-# Start backend container
-docker run -p 8000:8000 yolo-backend
-
-# Test it
-./run_stress_test.sh --env docker --profile standard
+Edit `config.yaml` to customize test mix, image sizes, and performance thresholds.un_stress_test.sh --env swarm --profile load --mode headless
 ```
 
 ### Kubernetes Deployment
 
 ```bash
-# Assuming backend is exposed on NodePort 30080
-./run_stress_test.sh --env kubernetes --profile load --mode headless
-```
-
-### Remote/Production
-
-```bash
-# Test staging
-./run_stress_test.sh --env staging --profile smoke
-
-# Test production (careful!)
-./run_stress_test.sh --env production --profile smoke
+# Test Kubernetes cluster (NodePort 30080)
+./run_stress_test.sh --env k8s --profile load --mode headless
 ```
 
 ## Understanding Results
@@ -240,42 +224,22 @@ docker run -p 8000:8000 yolo-backend
 ```
 ========================================================================
 BENCHMARK RESULTS
-========================================================================
-
-Total requests: 500
-Successful: 498
-Failed: 2
-Success rate: 99.60%
-Total time: 18.45s
-Requests/second: 27.10
-
-Response times (successful requests):
-  Min: 0.142s
-  Max: 1.523s
-  Mean: 0.456s
-  Median: 0.398s
-
-Percentiles:
-  50th: 0.398s
-  90th: 0.721s
-  95th: 0.892s
-  99th: 1.234s
-
-Threshold Checks:
-  Failure Rate: 0.40% (max: 1.00%) ✓ PASS
-  P95 Response Time: 0.892s (max: 2.0s) ✓ PASS
-  P99 Response Time: 1.234s (max: 5.0s) ✓ PASS
-  Requests/Second: 27.10 (min: 10) ✓ PASS
-========================================================================
-```
-
-## Testing Strategies
-
-### 1. Smoke Test
-
-Quick validation after deployment:
+======= Your Deployments
 
 ```bash
+# Docker Compose (local)
+./run_stress_test.sh --env local --profile quick
+
+# Docker Swarm
+./run_stress_test.sh --env swarm --profile standard
+
+# Kubernetes
+./run_stress_test.sh --env k8s --profile load
+
+# Compare all
+for env in local swarm k8s; do
+  ./run_stress_test.sh --env $env --profile quick
+done
 ./run_stress_test.sh --env production --profile smoke
 ```
 
@@ -298,14 +262,7 @@ Test behavior under sudden traffic bursts:
 ### 4. Endurance Testing
 
 Check for memory leaks and degradation:
-
-```bash
-./run_stress_test.sh --env staging --profile endurance --mode headless
-```
-
-### 5. Stress Testing
-
-Find breaking point:
+Results
 
 ```bash
 ./run_stress_test.sh --env staging --profile stress --mode headless
@@ -337,46 +294,6 @@ jobs:
           cd stress-test
           pip install -r requirements.txt
           python benchmark_async.py --env local --profile quick
-      
-      - name: Upload Results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: stress-test-results
-          path: stress-test/results/
-```
-
-## Troubleshooting
-
-### API Not Responding
-
-```
-Error: API is not responding
-```
-
-**Solution**: Ensure backend is running:
-```bash
-curl http://localhost:8000/health
-```
-
-### Connection Refused
-
-```
-Error: Connection refused
-```
-
-**Solution**: Check firewall and network settings
-
-### Too Many Open Files
-
-```
-Error: [Errno 24] Too many open files
-```
-
-**Solution**: Increase file descriptor limit:
-```bash
-ulimit -n 4096
-```
 
 ### Memory Issues
 
@@ -419,19 +336,28 @@ locust -f stress_test.py --worker --master-host=<master-ip>
 2. **Test Progressively**: Gradually increase load to find limits
 3. **Monitor Backend**: Watch CPU, memory, and logs during tests
 4. **Use Realistic Data**: Test with production-like images and patterns
-5. **Isolate Tests**: Run on dedicated test environments
-6. **Automate**: Integrate into CI/CD for continuous validation
-7. **Set Baselines**: Establish performance baselines and track changes
+Files
 
-## Resources
+- `benchmark_async.py` - Fast async Python benchmark tool
+- `stress_test.py` - Locust load testing (web UI + headless)
+- `run_stress_test.sh` - Convenient wrapper script
+- `config.yaml` - Environment and profile configuration
+- `test_image_loading.py` - Verify val2014 image loading
+- `results/` - Generated reports and logs
 
-- [Locust Documentation](https://docs.locust.io/)
-- [Performance Testing Guide](https://martinfowler.com/articles/practical-test-pyramid.html#PerformanceTests)
-- [aiohttp Documentation](https://docs.aiohttp.org/)
+## Troubleshooting
 
-## Support
+**API not responding:**
+```bash
+curl http://localhost:8000/health
+```
 
-For issues or questions:
-1. Check the troubleshooting section
-2. Review test logs in `results/` directory
-3. Verify backend is accessible: `curl http://your-url/health`
+**Too many open files:**
+```bash
+ulimit -n 4096
+```
+
+**Dependencies missing:**
+```bash
+pip install -r requirements.txt
+``

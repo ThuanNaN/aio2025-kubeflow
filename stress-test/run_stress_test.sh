@@ -144,7 +144,7 @@ ${BLUE}YOLO Backend API - Stress Test Runner${NC}
 Usage: $0 [OPTIONS]
 
 Options:
-    -e, --env <env>          Environment to test (local, docker, kubernetes, staging, production)
+    -e, --env <env>          Environment to test (local, swarm, k8s)
     -p, --profile <profile>  Test profile (smoke, quick, standard, load, spike, endurance, stress)
     -u, --url <url>          Custom API URL (overrides --env)
     -m, --mode <mode>        Test mode: async (default), web, headless
@@ -152,17 +152,20 @@ Options:
     -h, --help               Show this help message
 
 Examples:
-    # Quick async benchmark on local environment
+    # Test Docker Compose deployment
     $0 --env local --profile quick
 
-    # Async benchmark with custom URL
-    $0 --url http://localhost:8000 --profile standard
+    # Test Docker Swarm cluster
+    $0 --env swarm --profile standard
+
+    # Test Kubernetes cluster
+    $0 --env k8s --profile load --mode headless
 
     # Locust web UI for interactive testing
-    $0 --env kubernetes --mode web
+    $0 --env local --mode web
 
-    # Locust headless with profile
-    $0 --env staging --profile load --mode headless
+    # Custom URL
+    $0 --url http://localhost:8000 --profile standard
 
     # List available options
     $0 --list

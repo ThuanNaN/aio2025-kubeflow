@@ -17,6 +17,8 @@ from locust import HttpUser, task, between, events
 import io
 import os
 import yaml
+import random
+import glob
 from PIL import Image
 import numpy as np
 from pathlib import Path
@@ -27,17 +29,44 @@ config_path = Path(__file__).parent / "config.yaml"
 with open(config_path, 'r') as f:
     config = yaml.safe_load(f)
 
+# Load available images from val2014 directory
+VAL2014_DIR = Path(__file__).parent.parent / "val2014"
+if VAL2014_DIR.exists():
+    IMAGE_POOL = glob.glob(str(VAL2014_DIR / "*.jpg"))
+    print(f"Loaded {len(IMAGE_POOL)} images from {VAL2014_DIR}")
+else:
+    IMAGE_POOL = []
+    print(f"Warning: {VAL2014_DIR} not found, will generate synthetic images")
+
 
 def create_test_image(width=640, height=480):
-    """Create a random test image for upload."""
-    img_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
-    img = Image.fromarray(img_array)
-    
-    img_bytes = io.BytesIO()
-    img.save(img_bytes, format='JPEG')
-    img_bytes.seek(0)
-    
-    return img_bytes
+    """Load a random image from val2014 or create a synthetic one."""
+    if IMAGE_POOL:
+        # Use a random real image from val2014
+        img_path = random.choice(IMAGE_POOL)
+        img = Image.open(img_path)
+        
+        # Resize if dimensions are specified and different
+        if width and height and (img.size[0] != width or img.size[1] != height):
+            img = img.resize((width, height), Image.LANCZOS)
+        
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='JPEG', quality=95)
+        img_bytes.seek(0)
+        return img_bytes
+    else:
+        # Fallback to synthetic image generation
+        img_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+        img = Image.fromarray(img_array)
+        
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='JPEG')
+        img_bytes.seek(0)
+        return img_bytes
 
 
 class YOLOAPIUser(HttpUser):

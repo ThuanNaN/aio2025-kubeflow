@@ -14,6 +14,8 @@ import time
 import io
 import statistics
 import yaml
+import random
+import glob
 from PIL import Image
 import numpy as np
 from typing import List, Dict
@@ -31,6 +33,16 @@ class BenchmarkResult:
     error: str = None
 
 
+# Load available images from val2014 directory
+VAL2014_DIR = Path(__file__).parent.parent / "val2014"
+if VAL2014_DIR.exists():
+    IMAGE_POOL = glob.glob(str(VAL2014_DIR / "*.jpg"))
+    if IMAGE_POOL:
+        print(f"Loaded {len(IMAGE_POOL)} images from {VAL2014_DIR}")
+else:
+    IMAGE_POOL = []
+
+
 def load_config():
     """Load configuration from config.yaml."""
     config_path = Path(__file__).parent / "config.yaml"
@@ -39,13 +51,31 @@ def load_config():
 
 
 def create_test_image(width=640, height=480) -> bytes:
-    """Create a random test image for upload."""
-    img_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
-    img = Image.fromarray(img_array)
-    
-    img_bytes = io.BytesIO()
-    img.save(img_bytes, format='JPEG')
-    return img_bytes.getvalue()
+    """Load a random image from val2014 or create a synthetic one."""
+    if IMAGE_POOL:
+        # Use a random real image from val2014
+        img_path = random.choice(IMAGE_POOL)
+        img = Image.open(img_path)
+        
+        # Resize if dimensions are specified and different
+        if width and height and (img.size[0] != width or img.size[1] != height):
+            img = img.resize((width, height), Image.LANCZOS)
+        
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='JPEG', quality=95)
+        return img_bytes.getvalue()
+    else:
+        # Fallback to synthetic image generation
+        img_array = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
+        img = Image.fromarray(img_array)
+        
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format='JPEG')
+        return img_bytes.getvalue()
 
 
 async def test_health(session: aiohttp.ClientSession, base_url: str) -> BenchmarkResult:
@@ -298,7 +328,7 @@ def main():
     
     parser = argparse.ArgumentParser(description='Async stress test for YOLO API')
     parser.add_argument('--env', type=str, choices=list(config['environments'].keys()),
-                       help='Environment to test (from config.yaml)')
+                       help='Environment to test: local (Docker Compose), swarm (Docker Swarm), k8s (Kubernetes)')
     parser.add_argument('--profile', type=str, choices=list(config['test_profiles'].keys()),
                        help='Test profile (from config.yaml)')
     parser.add_argument('--url', type=str,

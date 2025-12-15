@@ -1,25 +1,12 @@
-# Results and reports
-results/
-*.html
-*.csv
-*.log
+# Results
+results/*.html
+results/*.csv
+results/*.log
 
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+*.pyc
 venv/
-env/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
 
 # OS
 .DS_Store
-Thumbs.db

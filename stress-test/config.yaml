@@ -3,23 +3,15 @@
 environments:
   local:
     url: "http://localhost:8000"
-    description: "Local development backend"
+    description: "Local Docker Compose deployment"
     
-  docker:
+  swarm:
     url: "http://localhost:8000"
-    description: "Dockerized local backend"
+    description: "Docker Swarm cluster"
     
-  kubernetes:
+  k8s:
     url: "http://localhost:30080"
-    description: "Local Kubernetes cluster"
-    
-  staging:
-    url: "https://staging-api.example.com"
-    description: "Staging environment"
-    
-  production:
-    url: "https://api.example.com"
-    description: "Production environment (use with caution!)"
+    description: "Kubernetes cluster (NodePort)"
 
 # Default test configurations
 test_profiles:

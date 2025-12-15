@@ -1,6 +1,6 @@
-# Quick Start Examples for Stress Testing
+# Stress Test Examples
 
-## Prerequisites
+## Setup
 
 ```bash
 cd stress-test
@@ -9,34 +9,10 @@ pip install -r requirements.txt
 
 ## Example 1: Test Local Backend (Quick)
 
+```bashQuick Test
+
 ```bash
-# Start your backend first
-cd ../backend
-python main.py
-
-# In another terminal, run a quick test
-cd ../stress-test
 ./run_stress_test.sh --env local --profile quick
-```
-
-**Expected Output:**
-```
-[INFO] Checking if API is available at http://localhost:8000...
-[INFO] ✓ API is responding
-[INFO] Running async benchmark...
-
-======================================================================
-YOLO Backend API - Async Benchmark
-======================================================================
-Target URL: http://localhost:8000
-Concurrent users: 10
-Total requests: 100
-...
-Success rate: 99.00%
-Requests/second: 25.4
-======================================================================
-```
-
 ## Example 2: Interactive Testing with Locust Web UI
 
 ```bash
@@ -48,21 +24,28 @@ Requests/second: 25.4
 # Click "Start swarming" to begin test
 ```
 
-## Example 3: Test Kubernetes Deployment
+## Example 3: Test Docker Swarm Deployment
 
 ```bash
-# Assuming your backend is deployed on Kubernetes and exposed on port 30080
-./run_stress_test.sh --env kubernetes --profile standard
+# Test your Docker Swarm cluster
+./run_stress_test.sh --env swarm --profile standard
 ```
 
-## Example 4: Custom URL Testing
+## Example 4: Test Kubernetes Deployment
+
+```bash
+# Test your Kubernetes cluster (NodePort 30080)
+./run_stress_test.sh --env k8s --profile standard
+```
+
+## Example 5: Custom URL Testing
 
 ```bash
 # Test any custom backend URL
 ./run_stress_test.sh --url http://192.168.1.100:8000 --profile load --mode headless
 ```
 
-## Example 5: Docker-based Testing
+## Example 6: Docker-based Testing
 
 ```bash
 # Build the stress test container
@@ -76,38 +59,31 @@ docker run --network host yolo-stress-test \
   python benchmark_async.py --url http://localhost:8000 --concurrent 20 --requests 500
 ```
 
-## Example 6: Production Smoke Test
+## Example 7: Comparing All Environments
 
 ```bash
-# Always start with a smoke test on production!
-./run_stress_test.sh --env production --profile smoke
+# Always start with a sm
+
+```bash
+./run_stress_test.sh --url http://192.168.1.100:8000 --profile standard
 ```
 
-## Example 7: Load Test with Report Generation
+## Example 6: Direct Python
 
 ```bash
-# Generate detailed HTML report
-./run_stress_test.sh --env staging --profile load --mode headless
+# Async benchmark
+python benchmark_async.py --env k8s --profile quick
 
-# Report will be saved in results/ directory
-# Example: results/load_report_20231216_143022.html
-```
-
-## Example 8: List All Options
-
-```bash
-# See all available environments and profiles
-./run_stress_test.sh --list
+# Locust
+locust -f stress_test.py --host http://localhost:30080 --headless -u 20 -r 5 -t 5m
 ```
 
 **Output:**
 ```
 === Available Environments ===
-  local           - Local development backend (http://localhost:8000)
-  docker          - Dockerized local backend (http://localhost:8000)
-  kubernetes      - Local Kubernetes cluster (http://localhost:30080)
-  staging         - Staging environment (https://staging-api.example.com)
-  production      - Production environment (https://api.example.com)
+  local           - Local Docker Compose deployment (http://localhost:8000)
+  swarm           - Docker Swarm cluster (http://localhost:8000)
+  k8s             - Kubernetes cluster (NodePort) (http://localhost:30080)
 
 === Available Test Profiles ===
   smoke           - Quick smoke test
@@ -119,33 +95,15 @@ docker run --network host yolo-stress-test \
   ...
 ```
 
-## Example 9: Progressive Load Testing
+## Example 10: Progressive Load Testing
 
 ```bash
 # Test with increasing load to find breaking point
 for profile in smoke quick standard load; do
-  echo "Testing with profile: $profile"
-  ./run_stress_test.sh --env staging --profile $profile --mode headless
-  sleep 30  # Cool down between tests
-done
-```
-
-## Example 10: Continuous Monitoring
+  echo "Testing witOptions
 
 ```bash
-# Run endurance test for 30 minutes
-./run_stress_test.sh --env staging --profile endurance --mode headless
-
-# Monitor results in real-time in another terminal
-tail -f results/endurance_*.csv
-```
-
-## Understanding Results
-
-### Good Performance Example
-```
-Success rate: 99.50%
-Requests/second: 45.2
+./run_stress_test.sh --liststs/second: 45.2
 P95 Response Time: 0.521s
 P99 Response Time: 0.892s
 
@@ -153,49 +111,15 @@ Threshold Checks:
   Failure Rate: 0.50% (max: 1.00%) ✓ PASS
   P95 Response Time: 0.521s (max: 2.0s) ✓ PASS
   Requests/Second: 45.20 (min: 10) ✓ PASS
-```
+```Monitor Results
 
-### Poor Performance Example (needs optimization)
-```
-Success rate: 85.20%
-Requests/second: 8.3
-P95 Response Time: 3.214s
-P99 Response Time: 8.521s
-
-Threshold Checks:
-  Failure Rate: 14.80% (max: 1.00%) ✗ FAIL
-  P95 Response Time: 3.214s (max: 2.0s) ✗ FAIL
-  Requests/Second: 8.30 (min: 10) ✗ FAIL
-```
-
-## Troubleshooting
-
-### Backend Not Running
 ```bash
-# Check if backend is accessible
-curl http://localhost:8000/health
-
-# If not, start it
-cd ../backend
-python main.py
+./run_stress_test.sh --env k8s --profile endurance --mode headless
 ```
 
-### Dependencies Missing
-```bash
-# Install all dependencies
-pip install -r requirements.txt
-```
+## Tips
 
-### Port Already in Use (Locust Web UI)
-```bash
-# Use a different port
-locust -f stress_test.py --host http://localhost:8000 --web-port 8090
-```
-
-## Next Steps
-
-1. **Customize config.yaml** - Add your environments and adjust test profiles
-2. **Set thresholds** - Define acceptable performance criteria
-3. **Automate** - Integrate into CI/CD pipeline
-4. **Monitor** - Track performance trends over time
-5. **Optimize** - Use results to improve backend performance
+- Start with `smoke` profile for quick validation
+- Use `web` mode for interactive testing
+- Use `headless` mode for automated reports
+- Check `results/` directory for HTML reports
