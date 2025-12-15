@@ -112,7 +112,6 @@ main() {
     
     init_swarm
     verify_nodes
-    setup_registry
     show_next_steps
 }
 
