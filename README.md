@@ -195,8 +195,8 @@ For multi-node production deployments with high availability, use Docker Swarm m
 
 4. **Cleanup when done** (optional):
    ```bash
-   ./cleanup-swarm.sh        # Remove stack only
-   ./cleanup-swarm.sh --all  # Remove everything
+   docker stack rm yolo-stack  # Remove the stack
+   docker swarm leave --force  # Leave swarm (on manager)
    ```
 
 The Swarm deployment supports:
@@ -231,7 +231,6 @@ aio2025-kubeflow/
 ├── docker-compose.swarm.yml      # Docker Swarm stack definition
 ├── deploy-swarm.sh               # Swarm infrastructure setup script
 ├── deploy-stack.sh               # Stack deployment script (uses GHCR images)
-├── cleanup-swarm.sh              # Cleanup and resource removal script
 ├── SWARM_DEPLOYMENT.md           # Docker Swarm deployment guide
 └── README.md                     # This file
 ```

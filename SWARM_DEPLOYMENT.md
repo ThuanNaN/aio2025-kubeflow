@@ -762,44 +762,9 @@ docker service update --image ghcr.io/thuannan/aio2025-kubeflow/backend:v1.0 yol
 
 ## 🧹 Cleanup
 
-### Automated Cleanup Script
+### Manual Cleanup
 
-Use the cleanup script for safe and automated resource cleanup:
-
-```bash
-# Remove only the stack (safe, default)
-./cleanup-swarm.sh
-
-# Same as above
-./cleanup-swarm.sh --stack-only
-
-# Remove stack but keep downloaded images (faster redeployment)
-./cleanup-swarm.sh --keep-images
-
-# Remove everything (stack, downloaded images, leave swarm)
-./cleanup-swarm.sh --all
-```
-
-**What it does:**
-- Shows current status before cleanup
-- Asks for confirmation before proceeding
-- Removes stack services gracefully
-- Waits for complete shutdown
-- Cleans up networks and downloaded images (if specified)
-- Provides next steps after cleanup
-
-**Cleanup Options:**
-
-| Command | Stack | Images | Leave Swarm |
-|---------|-------|--------|-------------|
-| `./cleanup-swarm.sh` | ✓ | - | - |
-| `./cleanup-swarm.sh --stack-only` | ✓ | - | - |
-| `./cleanup-swarm.sh --keep-images` | ✓ | - | - |
-| `./cleanup-swarm.sh --all` | ✓ | ✓ | ✓ |
-
-### Manual Cleanup (Alternative)
-
-If you prefer manual cleanup:
+Clean up resources using Docker commands:
 
 **Remove Stack:**
 ```bash
