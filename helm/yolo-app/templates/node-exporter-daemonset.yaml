@@ -1,0 +1,67 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: node-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+        component: monitoring
+    spec:
+      hostPID: true
+      hostIPC: true
+      hostNetwork: true
+      containers:
+        - name: node-exporter
+          image: {{ .Values.monitoring.nodeExporter.image.repository }}:{{ .Values.monitoring.nodeExporter.image.tag }}
+          imagePullPolicy: {{ .Values.monitoring.nodeExporter.image.pullPolicy }}
+          args:
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
+            - --path.rootfs=/host/root
+            - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.nodeExporter.service.targetPort }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.monitoring.nodeExporter.resources | nindent 12 }}
+          volumeMounts:
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: root
+              mountPath: /host/root
+              mountPropagation: HostToContainer
+              readOnly: true
+      tolerations:
+        # Allow scheduling on control-plane nodes
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
+{{- end }}

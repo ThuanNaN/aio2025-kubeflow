@@ -1,0 +1,23 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.monitoring.prometheus.service.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: prometheus
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: {{ .Values.monitoring.prometheus.service.type }}
+  selector:
+    app: prometheus
+    component: monitoring
+  ports:
+  - port: {{ .Values.monitoring.prometheus.service.port }}
+    targetPort: {{ .Values.monitoring.prometheus.service.targetPort }}
+    protocol: TCP
+    name: http
+{{- end }}

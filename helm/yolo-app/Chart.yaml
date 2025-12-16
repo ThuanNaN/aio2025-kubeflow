@@ -1,0 +1,13 @@
+apiVersion: v2
+name: yolo-app
+description: A Helm chart for YOLO object detection application with backend and frontend
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - yolo
+  - object-detection
+  - machine-learning
+  - ai
+maintainers:
+  - name: ThuanNaN
