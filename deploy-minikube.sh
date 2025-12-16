@@ -10,7 +10,7 @@ echo "🚀 Starting Minikube Deployment..."
 # Check if minikube is running
 if ! minikube status &> /dev/null; then
     echo "❌ Minikube is not running. Starting minikube..."
-    minikube start --cpus=4 --memory=8192
+    minikube start --cpus=8 --memory=16384
 else
     echo "✅ Minikube is already running"
 fi
@@ -50,6 +50,11 @@ echo "⏳ Waiting for deployments to be ready..."
 kubectl wait --for=condition=available --timeout=300s deployment/backend -n yolo-app
 kubectl wait --for=condition=available --timeout=300s deployment/frontend -n yolo-app
 
+# Deploy HPA (Horizontal Pod Autoscaler)
+echo "📊 Deploying Horizontal Pod Autoscalers..."
+kubectl apply -f k8s/backend/hpa.yaml
+kubectl apply -f k8s/frontend/hpa.yaml
+
 # Deploy ingress resources if ingress controller is ready
 if kubectl get deployment -n ingress-nginx ingress-nginx-controller &>/dev/null; then
     echo "🌐 Deploying ingress resources..."
@@ -83,6 +88,10 @@ echo ""
 echo "📈 To view metrics:"
 echo "   kubectl top nodes"
 echo "   kubectl top pods -n yolo-app"
+echo ""
+echo "🔄 To view autoscaling status:"
+echo "   kubectl get hpa -n yolo-app"
+echo "   kubectl get hpa -n yolo-app -w  # watch in real-time"
 echo ""
 echo "� Deploy services separately:"
 echo "   Backend:  ./deploy-backend.sh"
