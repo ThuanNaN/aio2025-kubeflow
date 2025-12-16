@@ -25,11 +25,13 @@ k8s/
 ├── backend/
 │   ├── deployment.yaml         # Backend deployment
 │   ├── service.yaml           # Backend service
-│   └── ingress.yaml           # Backend ingress rules
+│   ├── ingress.yaml           # Backend ingress rules
+│   └── hpa.yaml               # Backend autoscaling
 ├── frontend/
 │   ├── deployment.yaml         # Frontend deployment
 │   ├── service.yaml           # Frontend service
-│   └── ingress.yaml           # Frontend ingress rules
+│   ├── ingress.yaml           # Frontend ingress rules
+│   └── hpa.yaml               # Frontend autoscaling
 ├── shared/
 │   ├── namespace.yaml         # Namespace definition
 │   └── configmap.yaml         # Application configuration
@@ -173,7 +175,69 @@ If using Ingress with a domain, access via:
 
 ## Scaling
 
-Scale deployments:
+### Horizontal Pod Autoscaling (HPA)
+
+The application includes HorizontalPodAutoscaler configurations for automatic scaling based on CPU and memory usage.
+
+#### Deploy Autoscalers
+
+```bash
+# Deploy backend HPA
+kubectl apply -f k8s/backend/hpa.yaml
+
+# Deploy frontend HPA
+kubectl apply -f k8s/frontend/hpa.yaml
+```
+
+#### View Autoscaler Status
+
+```bash
+# Check HPA status
+kubectl get hpa -n yolo-app
+
+# Watch HPA in real-time
+kubectl get hpa -n yolo-app -w
+
+# Detailed HPA information
+kubectl describe hpa backend-hpa -n yolo-app
+kubectl describe hpa frontend-hpa -n yolo-app
+```
+
+#### HPA Configuration
+
+**Backend HPA:**
+- Min replicas: 2
+- Max replicas: 10
+- Triggers: CPU > 70% or Memory > 80%
+- Scale up: Fast (up to 4 pods or 100% per 15s)
+- Scale down: Conservative (up to 2 pods or 50% per 15s, 5min stabilization)
+
+**Frontend HPA:**
+- Min replicas: 2
+- Max replicas: 8
+- Triggers: CPU > 70% or Memory > 80%
+- Scale up: Fast (up to 4 pods or 100% per 15s)
+- Scale down: Conservative (up to 2 pods or 50% per 15s, 5min stabilization)
+
+#### Prerequisites for HPA
+
+Ensure metrics-server is installed in your cluster:
+```bash
+# Check if metrics-server is running
+kubectl get deployment metrics-server -n kube-system
+
+# If not installed, deploy metrics-server
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+
+For Minikube:
+```bash
+minikube addons enable metrics-server
+```
+
+### Manual Scaling
+
+You can also manually scale deployments (this will be overridden by HPA if deployed):
 ```bash
 # Scale backend
 kubectl scale deployment backend -n yolo-app --replicas=3
@@ -222,7 +286,9 @@ Verify image names in deployment files match your Docker Hub repository.
 Test backend from frontend pod:
 ```bash
 kubectl exec -it <frontend-pod> -n yolo-app -- curl http://backend-service:8000/
-```
+``HorizontalPodAutoscalers are configured for automatic scaling based on resource utilization
+- The HPA requires metrics-server to be running in the cluster
+- Resource requests and limits are defined to enable proper autoscaling behavior
 
 ### Update deployment with new image
 
