@@ -10,7 +10,8 @@ echo "🚀 Starting Minikube Deployment..."
 # Check if minikube is running
 if ! minikube status &> /dev/null; then
     echo "❌ Minikube is not running. Starting minikube..."
-    minikube start --cpus=8 --memory=16384
+    # minikube start --cpus=4 --memory=8192 --nodes=1 --driver=docker
+    minikube start --cpus=4 --memory=8192 --nodes=2 --driver=docker
 else
     echo "✅ Minikube is already running"
 fi
