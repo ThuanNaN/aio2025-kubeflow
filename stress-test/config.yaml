@@ -1,0 +1,79 @@
+# Configuration for stress testing different environments
+
+environments:
+  local:
+    url: "http://localhost:8000"
+    description: "Local Docker Compose deployment"
+    
+  swarm:
+    url: "http://localhost:8000"
+    description: "Docker Swarm cluster"
+    
+  k8s:
+    url: "http://localhost:30080"
+    description: "Kubernetes cluster (NodePort)"
+
+# Default test configurations
+test_profiles:
+  smoke:
+    users: 5
+    spawn_rate: 1
+    duration: "30s"
+    description: "Quick smoke test"
+    
+  quick:
+    users: 10
+    spawn_rate: 2
+    duration: "1m"
+    description: "Quick benchmark"
+    
+  standard:
+    users: 20
+    spawn_rate: 5
+    duration: "5m"
+    description: "Standard load test"
+    
+  load:
+    users: 50
+    spawn_rate: 5
+    duration: "10m"
+    description: "Load test"
+    
+  spike:
+    users: 100
+    spawn_rate: 50
+    duration: "2m"
+    description: "Spike test"
+    
+  endurance:
+    users: 20
+    spawn_rate: 2
+    duration: "30m"
+    description: "Endurance test"
+    
+  stress:
+    users: 100
+    spawn_rate: 10
+    duration: "15m"
+    description: "Stress test"
+
+# Test distribution (weights for different endpoint types)
+test_mix:
+  health_check: 0.1
+  predict_no_image: 0.6
+  predict_with_image: 0.2
+  predict_large_image: 0.1
+
+# Image sizes for testing
+image_sizes:
+  small: [640, 480]
+  medium: [1280, 720]
+  large: [1920, 1080]
+  xlarge: [3840, 2160]
+
+# Thresholds for test success (optional)
+thresholds:
+  max_failure_rate: 0.01  # 1% failure rate
+  max_p95_response_time: 2.0  # 2 seconds
+  max_p99_response_time: 5.0  # 5 seconds
+  min_requests_per_second: 10

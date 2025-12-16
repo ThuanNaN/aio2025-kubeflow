@@ -1,0 +1,12 @@
+# Results
+results/*.html
+results/*.csv
+results/*.log
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# OS
+.DS_Store
